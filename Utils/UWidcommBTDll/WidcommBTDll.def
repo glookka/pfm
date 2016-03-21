@@ -1,0 +1,18 @@
+LIBRARY      "WidcommBT"
+
+EXPORTS
+			WBT_CreateStack
+			WBT_DestroyStack
+			WBT_SetWindow
+			WBT_StartInquiry
+			WBT_StopInquiry
+			WBT_StartDiscovery
+			WBT_ReadDiscoveryRecords
+			WBT_PrepareSCN
+			WBT_CreateObexClient
+			WBT_DestroyObexClient
+			WBT_ObextOpen
+			WBT_ObexPutFileName
+			WBT_ObexPutBody
+			WBT_ObexAbort
+			WBT_Shutdown
