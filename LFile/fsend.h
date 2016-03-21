@@ -1,12 +1,10 @@
 #ifndef _fsend_
 #define _fsend_
 
-#include "LCore/cmain.h"
+#include "pfm/main.h"
 #include "LComm/cirda.h"
-#include "LFile/fcommon.h"
-#include "LFile/ferrors.h"
-#include "LFile/fmisc.h"
-
+#include "pfm/progress.h"
+#include "pfm/dialogs/errors.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // common sender
@@ -21,7 +19,7 @@ public:
 	};
 
 						// the obex client should be already connected
-						FileSend_c ( unsigned int uMaxChunk, FileList_t & tList, SlowOperationCallback_t fnPrepareCallback );
+						FileSend_c ( unsigned int uMaxChunk, SelectedFileList_t & tList, SlowOperationCallback_t fnPrepareCallback );
 
 	void				SetWindow ( HWND hWnd );
 	const wchar_t *		GetSourceFileName () const;
@@ -44,12 +42,12 @@ protected:
 		,STATE_ERROR
 	};
 
-	Error_e				m_eError;
-	State_e				m_eState;
-	DWORD				m_uMaxChunk;
-	DWORD				m_uBytesRead;
-	FileList_t *		m_pList;
-	FileIteratorPanel_c	m_tFileIterator;
+	Error_e					m_eError;
+	State_e					m_eState;
+	DWORD					m_uMaxChunk;
+	DWORD					m_uBytesRead;
+	SelectedFileList_t *	m_pList;
+	FileIteratorPanel_c		m_tFileIterator;
 
 	unsigned char *		m_pBuffer;
 
@@ -73,7 +71,7 @@ protected:
 class FileSendIrda_c : public FileSend_c
 {
 public:
-						FileSendIrda_c ( IrdaObexClient_c * pOBEX, unsigned int uMaxChunk, FileList_t & tList, SlowOperationCallback_t fnPrepareCallback );
+						FileSendIrda_c ( IrdaObexClient_c * pOBEX, unsigned int uMaxChunk, SelectedFileList_t & tList, SlowOperationCallback_t fnPrepareCallback );
 
 protected:
 	virtual bool 		SendFileName ();
@@ -91,7 +89,7 @@ private:
 class FileSendWidcomm_c : public FileSend_c
 {
 public:
-						FileSendWidcomm_c ( unsigned int uMaxChunk, FileList_t & tList, SlowOperationCallback_t fnPrepareCallback );
+						FileSendWidcomm_c ( unsigned int uMaxChunk, SelectedFileList_t & tList, SlowOperationCallback_t fnPrepareCallback );
 
 protected:
 	virtual bool 		SendFileName ();
@@ -108,7 +106,7 @@ class MsBTObexClient_c;
 class FileSendMsBT_c : public FileSend_c
 {
 public:
-						FileSendMsBT_c ( MsBTObexClient_c * pObex, unsigned int uMaxChunk, FileList_t & tList, SlowOperationCallback_t fnPrepareCallback );
+						FileSendMsBT_c ( MsBTObexClient_c * pObex, unsigned int uMaxChunk, SelectedFileList_t & tList, SlowOperationCallback_t fnPrepareCallback );
 
 protected:
 	virtual bool 		SendFileName ();

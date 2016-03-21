@@ -1,18 +1,13 @@
 #include "pch.h"
 
 #include "LDialogs/dfile_properties.h"
-#include "LCore/clog.h"
-#include "LCore/cfile.h"
-#include "LSettings/sconfig.h"
-#include "LSettings/slocal.h"
-#include "LPanel/presources.h"
-#include "LUI/udialogs.h"
-#include "LDialogs/dcommon.h"
-#include "LDialogs/dtree.h"
-#include "LDialogs/ddelete_progress.h"
+#include "pfm/config.h"
+#include "pfm/resources.h"
+#include "pfm/gui.h"
+#include "pfm/dialogs/tree.h"
 
 #include "aygshell.h"
-#include "Resources/resource.h"
+#include "Dlls/Resource/resource.h"
 #include "shellapi.h"
 
 extern HWND g_hMainWindow;
@@ -26,13 +21,13 @@ static void SlowCallback ()
 	SetCursor ( LoadCursor ( NULL, IDC_WAIT ) );
 }
 
-static void InitFileIcon ( HWND hDlg, FileList_t &  tList )
+static void InitFileIcon ( HWND hDlg, SelectedFileList_t &  tList )
 {
 	bool bEmptyIcon = true;
 
 	SHFILEINFO tShFileInfo;
 	tShFileInfo.iIcon = -1;
-	const WIN32_FIND_DATA & tData = tList.m_dFiles [0]->m_tData;
+	const WIN32_FIND_DATA & tData = tList.m_dFiles [0]->m_FindData;
 	HIMAGELIST hList = (HIMAGELIST) SHGetFileInfo ( tList.m_sRootDir + tData.cFileName,
 		tData.dwFileAttributes, &tShFileInfo, sizeof (SHFILEINFO), SHGFI_USEFILEATTRIBUTES | SHGFI_SYSICONINDEX | SHGFI_ICON | SHGFI_LARGEICON );
 
@@ -58,7 +53,7 @@ static void InitFileIcon ( HWND hDlg, FileList_t &  tList )
 class PropsDlg_c
 {
 public:
-	PropsDlg_c ( FileList_t & tList, const ULARGE_INTEGER & uSize, int nFiles, int nFolders, DWORD dwIncAttrib, DWORD dwExAttrib )
+	PropsDlg_c ( SelectedFileList_t & tList, const ULARGE_INTEGER & uSize, int nFiles, int nFolders, DWORD dwIncAttrib, DWORD dwExAttrib )
 		: m_tList			( tList )
 		, m_uSize			( uSize )
 		, m_nFiles			( nFiles )
@@ -104,7 +99,7 @@ public:
 
 		if ( m_tList.OneFile () )
 		{
-			const WIN32_FIND_DATA & tData = m_tList.m_dFiles [0]->m_tData;
+			const WIN32_FIND_DATA & tData = m_tList.m_dFiles [0]->m_FindData;
 
 			SHFILEINFO tShFileInfo;
 			SHGetFileInfo ( m_tList.m_sRootDir + tData.cFileName, tData.dwFileAttributes, &tShFileInfo, sizeof (SHFILEINFO), SHGFI_TYPENAME );
@@ -123,14 +118,14 @@ public:
 
 		SendMessage ( GetDlgItem ( hDlg, IDC_FILENAME_STATIC ), WM_SETFONT, (WPARAM)g_tResources.m_hBoldSystemFont, TRUE );
 
-		const WIN32_FIND_DATA & tData = m_tList.m_dFiles [0]->m_tData;
+		const WIN32_FIND_DATA & tData = m_tList.m_dFiles [0]->m_FindData;
 		
 		wchar_t szSize [FILESIZE_BUFFER_SIZE*2 + 64];
 		wchar_t szSize1 [FILESIZE_BUFFER_SIZE];
 		wchar_t szSize2 [FILESIZE_BUFFER_SIZE];
 		if ( tData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY )
 		{
-			wsprintf ( szSize, Txt ( T_DLG_SIZE_DETAILED ), FileSizeToString ( m_uSize, szSize1, true ), FileSizeToStringByte ( m_uSize, szSize2 ) );
+			wsprintf ( szSize, Txt ( T_DLG_SIZE_DETAILED ), FileSizeToStringUL ( m_uSize, szSize1, true ), FileSizeToStringByte ( m_uSize, szSize2 ) );
 			SetDlgItemText ( hDlg, IDC_FILE_SIZE, szSize );
 
 			wsprintf ( szSize, Txt ( T_DLG_FILESFOLDERS ), m_nFiles, m_nFolders - 1 );
@@ -140,7 +135,7 @@ public:
 		{
 			ShowWindow ( GetDlgItem ( hDlg, IDC_CONTAINS_STATIC ), SW_HIDE );
 			ShowWindow ( GetDlgItem ( hDlg, IDC_CONTAINS ), SW_HIDE );
-			wsprintf ( szSize, Txt ( T_DLG_SIZE_DETAILED ), FileSizeToString ( m_uSize, szSize1, true ), FileSizeToStringByte ( m_uSize, szSize2 ) );
+			wsprintf ( szSize, Txt ( T_DLG_SIZE_DETAILED ), FileSizeToStringUL ( m_uSize, szSize1, true ), FileSizeToStringByte ( m_uSize, szSize2 ) );
 			SetDlgItemText ( hDlg, IDC_FILE_SIZE, szSize );
 		}
 	}
@@ -195,7 +190,7 @@ public:
 		}
 		else
 		{
-			const WIN32_FIND_DATA & tData = m_tList.m_dFiles [0]->m_tData;
+			const WIN32_FIND_DATA & tData = m_tList.m_dFiles [0]->m_FindData;
 			FILETIME tLocalTime;
 
 			FileTimeToLocalFileTime ( &tData.ftCreationTime, &tLocalTime );
@@ -248,7 +243,7 @@ public:
 		DlgTxt ( hDlg, IDC_TARGET_STATIC,	T_DLG_PROPS_TARGET );
 		DlgTxt ( hDlg, IDC_TREE,			T_CMN_TREE );
 
-		Str_c sPath = m_tList.m_sRootDir + m_tList.m_dFiles [0]->m_tData.cFileName, sParams;
+		Str_c sPath = m_tList.m_sRootDir + m_tList.m_dFiles [0]->m_FindData.cFileName, sParams;
 		bool bDir;
 		if ( DecomposeLnk ( sPath, sParams, bDir ) )
 		{
@@ -269,7 +264,7 @@ public:
 		GetDlgItemText ( hDlg, IDC_TARGET, szBuf, MAX_PATH );
 		if ( szBuf != m_sInitialTarget )
 		{
-			Str_c sPath = m_tList.m_sRootDir + m_tList.m_dFiles [0]->m_tData.cFileName;
+			Str_c sPath = m_tList.m_sRootDir + m_tList.m_dFiles [0]->m_FindData.cFileName;
 			DeleteFile ( sPath );
 			CreateShortcut ( sPath, szBuf );
 		}
@@ -278,7 +273,7 @@ public:
 	void ShowShortcutTree ( HWND hDlg )
 	{
 		Str_c sPath;
-		if ( ShowFileTreeDlg ( hDlg, sPath, true ) )
+		if ( FileTreeDlg ( hDlg, sPath, true ) )
 		{
 			RemoveSlash ( sPath );
 			SetEditTextFocused ( GetDlgItem ( hDlg, IDC_TARGET ), Str_c ( L"\"" ) + sPath +  L"\"" );
@@ -404,7 +399,7 @@ public:
 	}
 
 private:
-	FileList_t &	m_tList;
+	SelectedFileList_t &	m_tList;
 	ULARGE_INTEGER	m_uSize;
 	DWORD			m_dwIncAttrib;
 	DWORD			m_dwExAttrib;
@@ -468,7 +463,7 @@ static PropsDlg_c * g_pPropsDlg = NULL;
 class CardPropsDlg_c
 {
 public:
-	CardPropsDlg_c ( FileList_t & tList, const ULARGE_INTEGER & uSize, int nFiles, int nFolders )
+	CardPropsDlg_c ( SelectedFileList_t & tList, const ULARGE_INTEGER & uSize, int nFiles, int nFolders )
 		: m_tList			( tList )
 		, m_uSize			( uSize )
 		, m_nFiles			( nFiles )
@@ -490,7 +485,7 @@ public:
 		HWND hFilename = GetDlgItem ( hDlg, IDC_FILENAME );
 		SendMessage ( hFilename, WM_SETFONT, (WPARAM)g_tResources.m_hBoldSystemFont, TRUE );
 
-		const WIN32_FIND_DATA & tData = m_tList.m_dFiles [0]->m_tData;
+		const WIN32_FIND_DATA & tData = m_tList.m_dFiles [0]->m_FindData;
 
 		SHFILEINFO tShFileInfo;
 		SHGetFileInfo ( m_tList.m_sRootDir + tData.cFileName, tData.dwFileAttributes, &tShFileInfo, sizeof (SHFILEINFO), SHGFI_TYPENAME );
@@ -502,7 +497,7 @@ public:
 		wchar_t szSize [FILESIZE_BUFFER_SIZE*2 + 128];
 		wchar_t szSize1 [FILESIZE_BUFFER_SIZE];
 		wchar_t szSize2 [FILESIZE_BUFFER_SIZE];
-		wsprintf ( szSize, Txt ( T_DLG_SIZE_DETAILED ), FileSizeToString ( m_uSize, szSize1, true ), FileSizeToStringByte ( m_uSize, szSize2 ) );
+		wsprintf ( szSize, Txt ( T_DLG_SIZE_DETAILED ), FileSizeToStringUL ( m_uSize, szSize1, true ), FileSizeToStringByte ( m_uSize, szSize2 ) );
 		SetDlgItemText ( hDlg, IDC_FILE_SIZE, szSize );
 
 		wsprintf ( szSize, Txt ( T_DLG_FILESFOLDERS ), m_nFiles, m_nFolders - 1 );
@@ -514,10 +509,10 @@ public:
 		
 		GetDiskFreeSpaceEx ( m_tList.m_sRootDir + tData.cFileName, &uFree, &uTotal, NULL );
 
-		wsprintf ( szSize, Txt ( T_DLG_SIZE_DETAILED ), FileSizeToString ( uTotal, szSize1, true ), FileSizeToStringByte ( uTotal, szSize2 ) );
+		wsprintf ( szSize, Txt ( T_DLG_SIZE_DETAILED ), FileSizeToStringUL ( uTotal, szSize1, true ), FileSizeToStringByte ( uTotal, szSize2 ) );
 		SetDlgItemText ( hDlg, IDC_TOTAL_SPACE, szSize );
 
-		wsprintf ( szSize, Txt ( T_DLG_SIZE_DETAILED ), FileSizeToString ( uFree, szSize1, true ), FileSizeToStringByte ( uFree, szSize2 ) );
+		wsprintf ( szSize, Txt ( T_DLG_SIZE_DETAILED ), FileSizeToStringUL ( uFree, szSize1, true ), FileSizeToStringByte ( uFree, szSize2 ) );
 		SetDlgItemText ( hDlg, IDC_FREE_SPACE, szSize );
 	}
 
@@ -527,7 +522,7 @@ public:
 	}
 
 private:
-	FileList_t &	m_tList;
+	SelectedFileList_t &	m_tList;
 	ULARGE_INTEGER	m_uSize;
 	int				m_nFiles;
 	int				m_nFolders;
@@ -725,7 +720,7 @@ static int CALLBACK PropSheetProc ( HWND hDlg, UINT uMsg, LPARAM lParam )
 }
 
 
-static bool ShowCommonFilesDlg ( FileList_t & tList, bool bShortcut )
+static bool ShowCommonFilesDlg ( SelectedFileList_t & tList, bool bShortcut )
 {
 	ULARGE_INTEGER uSize;
 	int nFiles, nFolders;
@@ -767,7 +762,7 @@ static bool ShowCommonFilesDlg ( FileList_t & tList, bool bShortcut )
 }
 
 
-static void ShowCardDlg ( FileList_t & tList )
+static void ShowCardDlg ( SelectedFileList_t & tList )
 {
  	ULARGE_INTEGER uSize;
 	int nFiles, nFolders;
@@ -781,16 +776,16 @@ static void ShowCardDlg ( FileList_t & tList )
 }
 
 
-bool ShowFilePropertiesDialog ( FileList_t & tList )
+bool ShowFilePropertiesDialog ( SelectedFileList_t & tList )
 {
-	if ( g_tConfig.fullscreen )
+	if ( cfg->fullscreen )
 		SHFullScreen ( g_hMainWindow, SHFS_SHOWTASKBAR );
 
-	if ( tList.OneFile () && IsStorageCard ( tList.m_dFiles [0]->m_tData.cFileName ) )
+	if ( tList.OneFile () && ( tList.m_dFiles [0]->m_FindData.dwFileAttributes & FILE_ATTRIBUTE_CARD ) )
 		ShowCardDlg ( tList );
 	else
 	{
-		bool bLnk = tList.OneFile () && Str_c ( tList.m_dFiles [0]->m_tData.cFileName ).Ends ( L".lnk" );
+		bool bLnk = tList.OneFile () && Str_c ( tList.m_dFiles [0]->m_FindData.cFileName ).Ends ( L".lnk" );
 		ShowCommonFilesDlg ( tList, bLnk );
 	}
 

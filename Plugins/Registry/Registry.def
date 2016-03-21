@@ -1,0 +1,14 @@
+LIBRARY      "Registry"
+
+EXPORTS
+	OpenPlugin
+	ClosePlugin
+	GetFindData
+	FreeFindData
+	DeleteFiles
+	FindFiles
+	SetDirectory
+	GetPluginInfo
+	SetStartupInfo
+	Compare
+	ExitPFM

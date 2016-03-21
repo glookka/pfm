@@ -1,26 +1,20 @@
 #include "pch.h"
 
 #include "LDialogs/dcopy.h"
-#include "LCore/clog.h"
-#include "LFile/fmisc.h"
-#include "LSettings/sconfig.h"
-#include "LSettings/srecent.h"
-#include "LSettings/slocal.h"
-#include "LPanel/presources.h"
-#include "LUI/udialogs.h"
-#include "LDialogs/dcommon.h"
-#include "LDialogs/dtree.h"
-
+#include "pfm/config.h"
+#include "pfm/resources.h"
+#include "pfm/gui.h"
+#include "pfm/dialogs/tree.h"
 
 #include "aygshell.h"
-#include "Resources/resource.h"
+#include "Dlls/Resource/resource.h"
 
 extern HWND g_hMainWindow;
 
 static HWND g_hCombo = NULL;
 
 static wchar_t g_szDest [PATH_BUFFER_SIZE];
-static FileList_t * g_pList = NULL;
+static SelectedFileList_t * g_pList = NULL;
 
 
 static void PopulateCopyList ( HWND hList, const wchar_t * szDest )
@@ -42,14 +36,14 @@ static void SetCopyText ( HWND hText )
 	if ( nFiles > 1 )
 	{
 		wchar_t szSize [FILESIZE_BUFFER_SIZE];
-		FileSizeToString ( g_pList->m_uSize, szSize, true );
+		FileSizeToStringUL ( g_pList->m_uSize, szSize, true );
 		wsprintf ( g_szDest, Txt ( T_DLG_COPY_FILES ), nFiles, szSize );
 	}
 	else
 	{
-		const FileInfo_t * pInfo = g_pList->m_dFiles [0];
+		const PanelItem_t * pInfo = g_pList->m_dFiles [0];
 		Assert ( pInfo );
-		wcscpy ( g_szDest, pInfo->m_tData.cFileName );
+		wcscpy ( g_szDest, pInfo->m_FindData.cFileName );
 	}
 
 	AlignFileName ( hText, g_szDest );
@@ -80,7 +74,7 @@ static BOOL CALLBACK CopyDlgProc ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lP
 			DlgTxt ( hDlg, IDCANCEL, T_TBAR_CANCEL );
 			DlgTxt ( hDlg, IDC_TREE, T_CMN_TREE );
 
-			HWND hTB = CreateToolbar ( hDlg, IDM_OK_CANCEL, 0, false );
+			HWND hTB = CreateToolbar ( hDlg, IDM_OK_CANCEL, 0 );
 			SetToolbarText ( hTB, IDOK, Txt ( T_TBAR_COPY ) );
 			SetToolbarText ( hTB, IDCANCEL, Txt ( T_TBAR_CANCEL ) );
 
@@ -110,7 +104,7 @@ static BOOL CALLBACK CopyDlgProc ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lP
 				{
 					GetWindowText ( g_hCombo, g_szDest, PATH_BUFFER_SIZE );
 					Str_c sPath = g_szDest;
-					if ( ShowDirTreeDlg ( hDlg, sPath ) )
+					if ( DirTreeDlg ( hDlg, sPath ) )
 						SetComboTextFocused ( g_hCombo, sPath );
 				}
 				break;
@@ -130,10 +124,6 @@ static BOOL CALLBACK CopyDlgProc ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lP
 		Help ( L"CopyMove" );
 		return TRUE;
 	}
-
-	DWORD dwRes = HandleDlgColor ( hDlg, Msg, wParam, lParam );
-	if ( dwRes )
-		return dwRes;
 
 	return MovingWindowProc ( hDlg, Msg, wParam, lParam );
 }
@@ -191,15 +181,11 @@ static BOOL CALLBACK RenameDlgProc ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM 
 		return TRUE;
 	}
 
-	DWORD dwRes = HandleDlgColor ( hDlg, Msg, wParam, lParam );
-	if ( dwRes )
-		return dwRes;
-
 	return MovingWindowProc ( hDlg, Msg, wParam, lParam );
 }
 
 
-int ShowCopyMoveDialog ( Str_c & sDest, FileList_t & tList )
+int ShowCopyMoveDialog ( Str_c & sDest, SelectedFileList_t & tList )
 {
 	g_pList = &tList;
 	wcscpy ( g_szDest, sDest );
@@ -211,12 +197,12 @@ int ShowCopyMoveDialog ( Str_c & sDest, FileList_t & tList )
 }
 
 
-int ShowRenameFilesDialog ( Str_c & sDest, FileList_t & tList )
+int ShowRenameFilesDialog ( Str_c & sDest, SelectedFileList_t & tList )
 {
 	Assert ( tList.m_dFiles.Length () == 1 );
 
 	g_pList = &tList;
-	wcscpy ( g_szDest, tList.m_dFiles [0]->m_tData.cFileName );
+	wcscpy ( g_szDest, tList.m_dFiles [0]->m_FindData.cFileName );
 	int iRes = DialogBox ( ResourceInstance (), MAKEINTRESOURCE (IDD_RENAME_FILES), g_hMainWindow, RenameDlgProc );
 	if ( iRes != IDCANCEL )
 		sDest = g_szDest;

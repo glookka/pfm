@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="windows-1251"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8,00"
+	Version="9,00"
 	Name="LComm"
 	ProjectGUID="{8B815BFC-2645-4577-8079-000E2BEB4E80}"
 	RootNamespace="LComm"
+	TargetFrameworkVersion="131072"
 	>
 	<Platforms>
 		<Platform
@@ -91,6 +92,9 @@
 				OutputFile="$(PlatformName)\$(ConfigurationName)/LComm.bsc"
 			/>
 			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
 				Name="VCCodeSignTool"
 			/>
 			<Tool
@@ -136,7 +140,7 @@
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
 				Optimization="1"
-				InlineFunctionExpansion="0"
+				InlineFunctionExpansion="1"
 				ImproveFloatingPointConsistency="false"
 				WholeProgramOptimization="true"
 				AdditionalIncludeDirectories="..\"
@@ -186,6 +190,9 @@
 				OutputFile="$(PlatformName)\$(ConfigurationName)/LComm.bsc"
 			/>
 			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
 				Name="VCCodeSignTool"
 			/>
 			<Tool
@@ -193,7 +200,7 @@
 			/>
 			<DeploymentTool
 				ForceDirty="-1"
-				RemoteDirectory=""
+				RemoteDirectory="Storage Card\Rinfix Pocket File Manager"
 				RegisterOutput="0"
 				AdditionalFiles=""
 			/>
@@ -346,6 +353,9 @@
 				OutputFile="$(PlatformName)\$(ConfigurationName)/LComm.bsc"
 			/>
 			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
 				Name="VCCodeSignTool"
 			/>
 			<Tool
@@ -431,6 +441,9 @@
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
 				OutputFile="$(PlatformName)\$(ConfigurationName)/LComm.bsc"
+			/>
+			<Tool
+				Name="VCFxCopTool"
 			/>
 			<Tool
 				Name="VCCodeSignTool"

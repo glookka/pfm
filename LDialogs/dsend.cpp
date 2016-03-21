@@ -5,18 +5,15 @@
 #include "LComm/ccomm.h"
 #include "LComm/cbluetooth.h"
 #include "LComm/cmsbt.h"
-#include "LSettings/slocal.h"
-#include "LFile/fmisc.h"
+#include "pfm/config.h"
 #include "LFile/fsend.h"
-#include "LUI/udialogs.h"
-#include "LDialogs/dcommon.h"
-#include "LDialogs/derrors.h"
-#include "LPanel/presources.h"
+#include "pfm/gui.h"
+#include "pfm/dialogs/errors.h"
+#include "pfm/resources.h"
 #include "Utils/UWidcommBTDll/wbt.h"
-#include "LCore/clog.h"
 
 #include "aygshell.h"
-#include "Resources/resource.h"
+#include "Dlls/Resource/resource.h"
 
 extern HWND g_hMainWindow;
 
@@ -30,7 +27,7 @@ enum SendType_e
 Irda_c * g_pIrda 	= NULL;
 MsBT_c * g_pMSBT	= NULL;
 SendType_e g_eType 	= SEND_IRDA;
-
+/*
 class FindDeviceDlg_c : public WindowResizer_c
 {
 public:
@@ -275,11 +272,11 @@ private:
 
 
 static FindDeviceDlg_c * g_pFindDeviceDlg = NULL;
-
+*/
 
 static BOOL CALLBACK FindDlgProc ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam )
 {  
-	Assert ( g_pFindDeviceDlg );
+/*	Assert ( g_pFindDeviceDlg );
 
 	if ( Msg == WIDCOMM_WM_DEVICEFOUNDMESSAGE || Msg == MSBT_WM_DEVICEFOUNDMESSAGE )
 		g_pFindDeviceDlg->OnDeviceResponded ( hDlg, (BLUETOOTH_DEVICE_INFO *)lParam );
@@ -289,11 +286,11 @@ static BOOL CALLBACK FindDlgProc ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lP
 		g_pFindDeviceDlg->OnDiscoveryComplete ( hDlg );
 	else if ( Msg == IRDA_WM_DEVICEFOUNDMESSAGE )
 		g_pFindDeviceDlg->OnDeviceResponded ( hDlg, (IRDA_DEVICE_INFO *) lParam, wParam );
-	
+*/	
 	switch ( Msg )
 	{
 	case WM_INITDIALOG:
-		g_pFindDeviceDlg->Init ( hDlg );
+//		g_pFindDeviceDlg->Init ( hDlg );
 		SetCursor ( LoadCursor ( NULL, IDC_ARROW ) );
 		break;
 
@@ -301,12 +298,12 @@ static BOOL CALLBACK FindDlgProc ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lP
 		switch (LOWORD(wParam))
 		{
 		case IDOK:
-			g_pFindDeviceDlg->StartDiscovery ( hDlg );
+//			g_pFindDeviceDlg->StartDiscovery ( hDlg );
 			break;
 
 		case IDCANCEL:
 			SipShowIM ( SIPF_OFF );
-			g_pFindDeviceDlg->Close ();
+//			g_pFindDeviceDlg->Close ();
 			EndDialog ( hDlg, LOWORD (wParam) );
 			break;
 		}
@@ -317,8 +314,8 @@ static BOOL CALLBACK FindDlgProc ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lP
 		return TRUE;
 	}
 
-	if ( HandleSizeChange ( hDlg, Msg, wParam, lParam ) )
-		g_pFindDeviceDlg->Resize ();
+/*	if ( HandleSizeChange ( hDlg, Msg, wParam, lParam ) )
+		g_pFindDeviceDlg->Resize ();*/
 
 	HandleActivate ( hDlg, Msg, wParam, lParam );
 
@@ -330,7 +327,7 @@ static BOOL CALLBACK FindDlgProc ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lP
 class FileSendProgressDlg_c : public WindowProgress_c
 {
 public:
-	FileSendProgressDlg_c ( FileList_t & tList, const BLUETOOTH_DEVICE_INFO & tInfo, unsigned char uSCN = 0 )
+	FileSendProgressDlg_c ( SelectedFileList_t & tList, const BLUETOOTH_DEVICE_INFO & tInfo, unsigned char uSCN = 0 )
 		: m_hDlg 	( NULL )
 		, m_tInfo	( tInfo )
 		, m_pSender	( NULL )
@@ -390,14 +387,14 @@ public:
 			if ( ! dll_WBT_CreateObexClient ( m_hDlg ) )
 			{
 				Close ();
-				ShowErrorDialog ( g_hMainWindow, Txt ( T_MSG_ERROR ), Txt ( T_DLG_BT_ERR_CONN ), IDD_ERROR_OK );
+				ShowErrorDialog ( g_hMainWindow, false, Txt ( T_DLG_BT_ERR_CONN ), IDD_ERROR_OK );
 				return false;
 			}
 			
 			if ( ! dll_WBT_ObextOpen ( m_uSCN, m_tInfo.Address.rgBytes ) )
 			{
 				Close ();
-				ShowErrorDialog ( g_hMainWindow, Txt ( T_MSG_ERROR ), Txt ( T_DLG_BT_ERR_CONN ), IDD_ERROR_OK );
+				ShowErrorDialog ( g_hMainWindow, false, Txt ( T_DLG_BT_ERR_CONN ), IDD_ERROR_OK );
 				return false;
 			}
 			break;
@@ -450,14 +447,14 @@ public:
 		}
 		else
 		{
-			ShowErrorDialog ( m_hDlg, Txt ( T_MSG_ERROR ), Txt ( g_eType == SEND_IRDA ? T_DLG_IR_ERR_CONN : T_DLG_BT_ERR_CONN ), IDD_ERROR_OK );
+			ShowErrorDialog ( m_hDlg, false, Txt ( g_eType == SEND_IRDA ? T_DLG_IR_ERR_CONN : T_DLG_BT_ERR_CONN ), IDD_ERROR_OK );
 			Close ();
 		}
 	}
 
 	void OnClose ()
 	{
-		ShowErrorDialog ( m_hDlg, Txt ( T_MSG_ERROR ), Txt ( T_DLG_BT_CONN_CLOSED ), IDD_ERROR_OK );
+		ShowErrorDialog ( m_hDlg, false, Txt ( T_DLG_BT_CONN_CLOSED ), IDD_ERROR_OK );
 		Close ();
 	}
 
@@ -483,10 +480,10 @@ public:
 			switch ( m_pSender->GetError () )
 			{
 			case FileSend_c::ERR_SEND:
-				ShowErrorDialog ( m_hDlg, Txt ( T_MSG_ERROR ), Txt ( g_eType == SEND_IRDA ? T_DLG_IR_ERR_SEND : T_DLG_BT_ERR_SEND ), IDD_ERROR_OK );
+				ShowErrorDialog ( m_hDlg, false, Txt ( g_eType == SEND_IRDA ? T_DLG_IR_ERR_SEND : T_DLG_BT_ERR_SEND ), IDD_ERROR_OK );
 				break;
 			case FileSend_c::ERR_READ:
-				ShowErrorDialog ( m_hDlg, Txt ( T_MSG_ERROR ), Txt ( T_DLG_ERR_READ ), IDD_ERROR_OK );
+				ShowErrorDialog ( m_hDlg, false, Txt ( T_DLG_ERR_READ ), IDD_ERROR_OK );
 				break;
 			}
 		}
@@ -509,7 +506,7 @@ private:
 	FileSend_c * 			m_pSender;
 	IrdaObexClient_c *		m_pIRObex;
 	MsBTObexClient_c *		m_pMSBTObex;
-	FileList_t &			m_tList;
+	SelectedFileList_t &			m_tList;
 	bool					m_bCancelled;
 
 	void Close ()
@@ -523,8 +520,7 @@ private:
 		if ( m_pSender->GetNameFlag () )
 			AlignFileName ( m_hSourceText, m_pSender->GetSourceFileName () );
 
-		if ( WindowProgress_c::UpdateProgress ( m_pSender ) )
-			m_pSender->ResetChangeFlags ();
+		WindowProgress_c::UpdateProgress ( m_pSender );
 	}
 };
 
@@ -572,33 +568,33 @@ static BOOL CALLBACK SendDlgProc ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lP
 
 //////////////////////////////////////////////////////////////////////////
 
-void ShowIRDlg ( FileList_t & tList )
+void ShowIRDlg ( SelectedFileList_t & tList )
 {
-	Assert ( ! g_pFindDeviceDlg && ! g_pIrda && ! g_pFileSendProgressDlg );
+//	Assert ( ! g_pFindDeviceDlg && ! g_pIrda && ! g_pFileSendProgressDlg );
 
 	if ( ! Init_Sockets () )
 	{
-		ShowErrorDialog ( g_hMainWindow, Txt ( T_MSG_ERROR ), Txt ( T_DLG_IR_ERR_INIT ), IDD_ERROR_OK );
+		ShowErrorDialog ( g_hMainWindow, false, Txt ( T_DLG_IR_ERR_INIT ), IDD_ERROR_OK );
 		return;
 	}
 
 	g_eType = SEND_IRDA;
 
 	g_pIrda = new Irda_c;
-	g_pFindDeviceDlg = new FindDeviceDlg_c;
+//	g_pFindDeviceDlg = new FindDeviceDlg_c;
 
 	int iDlgRes = DialogBox ( ResourceInstance (), MAKEINTRESOURCE ( IDD_FIND_DEVICE ), g_hMainWindow, FindDlgProc );
 
 	if ( iDlgRes != IDOK )
 	{
 		SafeDelete ( g_pIrda );
-		SafeDelete ( g_pFindDeviceDlg );
+//		SafeDelete ( g_pFindDeviceDlg );
 		return;
 	}
 
-	g_pFileSendProgressDlg = new FileSendProgressDlg_c ( tList, g_pFindDeviceDlg->GetDeviceInfo () );
+//	g_pFileSendProgressDlg = new FileSendProgressDlg_c ( tList, g_pFindDeviceDlg->GetDeviceInfo () );
 
-	SafeDelete ( g_pFindDeviceDlg );
+//	SafeDelete ( g_pFindDeviceDlg );
 
 	DialogBox ( ResourceInstance (), MAKEINTRESOURCE ( IDD_SEND_PROGRESS ), g_hMainWindow, SendDlgProc );
 
@@ -607,9 +603,9 @@ void ShowIRDlg ( FileList_t & tList )
 }
 
 
-void ShowBTDlg ( FileList_t & tList )
+void ShowBTDlg ( SelectedFileList_t & tList )
 {
-	Assert ( ! g_pFindDeviceDlg && ! g_pFileSendProgressDlg && ! g_pMSBT );
+//	Assert ( ! g_pFindDeviceDlg && ! g_pFileSendProgressDlg && ! g_pMSBT );
 
 	SetCursor ( LoadCursor ( NULL, IDC_WAIT ) );
 	
@@ -618,7 +614,7 @@ void ShowBTDlg ( FileList_t & tList )
 		if ( ! Init_WidcommBT () )
 		{
 			SetCursor ( LoadCursor ( NULL, IDC_ARROW ) );
-			ShowErrorDialog ( g_hMainWindow, Txt ( T_MSG_ERROR ), Txt ( T_DLG_BT_ERR_INIT_W ), IDD_ERROR_OK );
+			ShowErrorDialog ( g_hMainWindow, false, Txt ( T_DLG_BT_ERR_INIT_W ), IDD_ERROR_OK );
 			return;
 		}
 
@@ -630,7 +626,7 @@ void ShowBTDlg ( FileList_t & tList )
 			if ( ! Init_MsBT () )
 			{
 				SetCursor ( LoadCursor ( NULL, IDC_ARROW ) );
-				ShowErrorDialog ( g_hMainWindow, Txt ( T_MSG_ERROR ), Txt ( T_DLG_BT_ERR_INIT_W ), IDD_ERROR_OK );
+				ShowErrorDialog ( g_hMainWindow, false, Txt ( T_DLG_BT_ERR_INIT_W ), IDD_ERROR_OK );
 				return;
 			}
 
@@ -641,7 +637,7 @@ void ShowBTDlg ( FileList_t & tList )
 		else
 			return;
 
-	g_pFindDeviceDlg = new FindDeviceDlg_c;
+//	g_pFindDeviceDlg = new FindDeviceDlg_c;
 
 	int iDlgRes = DialogBox ( ResourceInstance (), MAKEINTRESOURCE ( IDD_FIND_DEVICE ), g_hMainWindow, FindDlgProc );
 
@@ -659,14 +655,14 @@ void ShowBTDlg ( FileList_t & tList )
 			break;
 		}
 
-		SafeDelete ( g_pFindDeviceDlg );
+//		SafeDelete ( g_pFindDeviceDlg );
 		return;
 	}
 
 	// show send dialog in here
-	g_pFileSendProgressDlg = new FileSendProgressDlg_c ( tList, g_pFindDeviceDlg->GetDeviceInfo (), g_pFindDeviceDlg->GetSCN () );
+//	g_pFileSendProgressDlg = new FileSendProgressDlg_c ( tList, g_pFindDeviceDlg->GetDeviceInfo (), g_pFindDeviceDlg->GetSCN () );
 
-	SafeDelete ( g_pFindDeviceDlg );
+//	SafeDelete ( g_pFindDeviceDlg );
 
 	DialogBox ( ResourceInstance (), MAKEINTRESOURCE ( IDD_SEND_PROGRESS ), g_hMainWindow, SendDlgProc );
 

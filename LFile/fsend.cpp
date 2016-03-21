@@ -1,18 +1,16 @@
 #include "pch.h"
 
 #include "LFile/fsend.h"
-#include "LCore/clog.h"
-#include "LCore/cfile.h"
 #include "LComm/cbluetooth.h"
 #include "LComm/cmsbt.h"
 
-#include "Resources/resource.h"
+#include "Dlls\Resource\resource.h"
 
 static const int WIDCOMM_RSP_CONTINUE	= 0x10;
 static const int WIDCOMM_RSP_OK			= 0x20;
 
 //////////////////////////////////////////////////////////////////////////
-FileSend_c::FileSend_c ( unsigned int uMaxChunk, FileList_t & tList, SlowOperationCallback_t fnPrepareCallback )
+FileSend_c::FileSend_c ( unsigned int uMaxChunk, SelectedFileList_t & tList, SlowOperationCallback_t fnPrepareCallback )
 	: m_pList		( &tList )
 	, m_uBytesRead	( 0 )
 	, m_uMaxChunk	( uMaxChunk )
@@ -197,8 +195,7 @@ bool FileSend_c::GenerateNextFileName ()
 		const WIN32_FIND_DATA * pData = m_tFileIterator.GetData ();
 		if ( pData && ! ( pData->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) && ! m_tFileIterator.Is2ndPassDir () )
 		{
-			m_sSourceFileName = m_pList->m_sRootDir + m_tFileIterator.GetFileName ();
-			m_bNameFlag = true;
+			m_sSourceFileName = m_tFileIterator.GetFullName ();
 			return true;
 		}
 	}
@@ -207,7 +204,7 @@ bool FileSend_c::GenerateNextFileName ()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-FileSendIrda_c::FileSendIrda_c ( IrdaObexClient_c * pOBEX, unsigned int uMaxChunk, FileList_t & tList, SlowOperationCallback_t fnPrepareCallback )
+FileSendIrda_c::FileSendIrda_c ( IrdaObexClient_c * pOBEX, unsigned int uMaxChunk, SelectedFileList_t & tList, SlowOperationCallback_t fnPrepareCallback )
 	: FileSend_c ( uMaxChunk, tList, fnPrepareCallback )
 	, m_pOBEX ( pOBEX )
 {
@@ -245,7 +242,7 @@ int FileSendIrda_c::GetRspContinue () const
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-FileSendWidcomm_c::FileSendWidcomm_c ( unsigned int uMaxChunk, FileList_t & tList, SlowOperationCallback_t fnPrepareCallback )
+FileSendWidcomm_c::FileSendWidcomm_c ( unsigned int uMaxChunk, SelectedFileList_t & tList, SlowOperationCallback_t fnPrepareCallback )
 	: FileSend_c ( uMaxChunk, tList, fnPrepareCallback )
 {
 }
@@ -280,7 +277,7 @@ int FileSendWidcomm_c::GetRspContinue () const
 }
 
 //////////////////////////////////////////////////////////////////////////
-FileSendMsBT_c::FileSendMsBT_c ( MsBTObexClient_c * pOBEX, unsigned int uMaxChunk, FileList_t & tList, SlowOperationCallback_t fnPrepareCallback )
+FileSendMsBT_c::FileSendMsBT_c ( MsBTObexClient_c * pOBEX, unsigned int uMaxChunk, SelectedFileList_t & tList, SlowOperationCallback_t fnPrepareCallback )
 	: FileSend_c ( uMaxChunk, tList, fnPrepareCallback )
 	, m_pOBEX ( pOBEX )
 {

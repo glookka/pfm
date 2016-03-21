@@ -1,7 +1,7 @@
 #include "pch.h"
 
 #include "cbluetooth.h"
-#include "LCore/cos.h"
+#include "pfm/system.h"
 
 HMODULE g_hWidcommLib = NULL;
 

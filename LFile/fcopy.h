@@ -1,10 +1,9 @@
 #ifndef _fcopy_
 #define _fcopy_
 
-#include "LCore/cmain.h"
-#include "LFile/fcommon.h"
-#include "LFile/fmisc.h"
-#include "LFile/ferrors.h"
+#include "pfm/main.h"
+#include "pfm/progress.h"
+#include "pfm/dialogs/errors.h"
 
 enum DestType_e
 {
@@ -16,7 +15,7 @@ enum DestType_e
 class FileMover_c
 {
 public:
-						FileMover_c ( const Str_c & sDest, FileList_t & tList, MarkCallback_t fnMarkCallback );
+						FileMover_c ( const Str_c & sDest, SelectedFileList_t & tList, MarkCallback_t fnMarkCallback );
 
 	bool				MoveNext ();
 	void				SetWindow ( HWND hWnd );
@@ -28,7 +27,7 @@ private:
 	MarkCallback_t		m_fnMarkCallback;
 
 	HWND				m_hWnd;
-	FileList_t *		m_pList;
+	SelectedFileList_t *		m_pList;
 	Str_c		m_sDestDir;
 	DestType_e			m_eDestType;
 	FileIteratorPanel_c m_tFileIterator;
@@ -51,7 +50,7 @@ public:
 	};
 
 
-						FileCopier_c ( const Str_c & sDest, FileList_t & tList, bool bMove,
+						FileCopier_c ( const Str_c & sDest, SelectedFileList_t & tList, bool bMove,
 								SlowOperationCallback_t fnPrepareCallback, MarkCallback_t fnMarkCallback );
 						~FileCopier_c ();
 
@@ -83,7 +82,7 @@ private:
 
 	DestType_e			m_eDestType;
 
-	FileList_t *		m_pList;
+	SelectedFileList_t *		m_pList;
 	FileIteratorPanel_c	m_tFileIterator;
 
 	CopyMode_e			m_eMode;
@@ -97,6 +96,7 @@ private:
 	DWORD				m_dwSourceAttrib;
 	FILETIME			m_tModifyTime;
 
+	bool				m_bMove;
 	HWND				m_hWnd;
 	MarkCallback_t		m_fnMarkCallback;
 

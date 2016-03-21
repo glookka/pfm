@@ -250,7 +250,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions=" /subsystem:windowsce,4.20 /machine:ARM /ARMPADCODE"
+				AdditionalOptions=" /subsystem:windowsce,4.20 /machine:ARM /ARMPADCODE /noentry  /opt:nowin98"
 				AdditionalDependencies="coredll.lib secchk.lib"
 				OutputFile="$(SolutionDir)Bin\$(ProjectName)\$(PlatformName)_$(ConfigurationName)\Crypt.dll"
 				LinkIncremental="1"
@@ -276,7 +276,7 @@
 			/>
 			<DeploymentTool
 				ForceDirty="-1"
-				RemoteDirectory=""
+				RemoteDirectory="Storage Card\Rinfix Pocket File Manager"
 				RegisterOutput="0"
 				AdditionalFiles=""
 			/>

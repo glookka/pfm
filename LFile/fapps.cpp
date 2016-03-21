@@ -1,12 +1,10 @@
 #include "pch.h"
 
 #include "LFile/fapps.h"
-#include "LCore/clog.h"
-#include "LCore/cos.h"
-#include "LCore/cfile.h"
-#include "LFile/fiterator.h"
-#include "LFile/ffilter.h"
-#include "LSettings/srecent.h"
+#include "pfm/iterator.h"
+#include "pfm/filter.h"
+#include "pfm/filemisc.h"
+#include "pfm/config.h"
 
 #include "shlobj.h"
 
@@ -30,9 +28,9 @@ void AppInfo_t::LoadIcon ()
 }
 /////////////////////////////////////////////////////////
 
-int AppCompare ( const AppInfo_t & tApp1, const AppInfo_t & tApp2 )
+int AppCompare ( const void * pApp1, const void * pApp2 )
 {
-	return wcscmp ( tApp1.m_sName, tApp2.m_sName );
+	return wcscmp ( ((const AppInfo_t *)pApp1)->m_sName, ((const AppInfo_t *)pApp2)->m_sName );
 }
 
 Str_c FilenameFromCommand ( const wchar_t * szCommand )
@@ -114,7 +112,6 @@ bool EnumApps ()
 
 	AppInfo_t tAppInfo;
 
-
 	while ( tIterator.IterateNext () )
 	{
 		const WIN32_FIND_DATA * pData = tIterator.GetData ();
@@ -126,14 +123,17 @@ bool EnumApps ()
 
 		bool bDir;
 
-		sFileName = sProgramsPath + L"\\" + tIterator.GetFileName ();
-		if ( ! DecomposeLnk ( sFileName, sParams, bDir ) )
+		sFileName = tIterator.GetFullName ();
+		sParams = L"";
+		if ( !DecomposeLnk ( sFileName, sParams, bDir ) )
 			continue;
+
+		sFileName.Strip ( L'\"' );
 
 		if ( bDir )
 			continue;
 
-		SplitPath ( tIterator.GetFileName (), sDir, sName, sExt );
+		SplitPath ( tIterator.GetData()->cFileName, sDir, sName, sExt );
 
 		tAppInfo.m_sName = sName;
 
@@ -371,9 +371,9 @@ namespace newmenu
 {
 	Array_T < NewItem_t > g_dItems;
 
-	int ItemCompare ( const NewItem_t & Item1, const NewItem_t & Item2 )
+	int ItemCompare ( const void * pItem1, const void * pItem2 )
 	{
-		return wcscmp ( Item1.m_sName, Item2.m_sName );
+		return wcscmp ( ((NewItem_t *)pItem1)->m_sName, ((NewItem_t *)pItem2)->m_sName );
 	}
 
 	void NewItem_t::Run () const

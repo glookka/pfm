@@ -1,8 +1,8 @@
 #ifndef _fclipboard_
 #define _fclipboard_
 
-#include "LCore/cmain.h"
-#include "LPanel/pbase.h"
+#include "pfm/main.h"
+#include "pfm/panel.h"
 
 namespace clipboard
 {

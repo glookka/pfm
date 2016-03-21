@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="windows-1251"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8,00"
+	Version="9,00"
 	Name="UWidcommBTDll5"
 	ProjectGUID="{9892FDC9-018F-4A2A-AE3A-F67E2480F8A5}"
 	RootNamespace="UWidcommBTDll5"
 	Keyword="MFCDLLProj"
+	TargetFrameworkVersion="131072"
 	>
 	<Platforms>
 		<Platform
@@ -82,6 +83,8 @@
 				ModuleDefinitionFile=".\WidcommBTDll5.def"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(SolutionDir)Bin\$(ProjectName)\$(PlatformName)_$(ConfigurationName)/WidcommBT5.pdb"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
 				ImportLibrary="$(SolutionDir)Bin\$(ProjectName)\$(PlatformName)_$(ConfigurationName)\WidcommBT5.lib"
 			/>
 			<Tool
@@ -92,6 +95,9 @@
 			/>
 			<Tool
 				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
 			/>
 			<Tool
 				Name="VCCodeSignTool"
@@ -161,6 +167,8 @@
 				LinkIncremental="2"
 				ModuleDefinitionFile=".\WidcommBTDll5.def"
 				GenerateDebugInformation="true"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
 				ImportLibrary="$(OutDir)/WidcommBTDll5.lib"
 			/>
 			<Tool
@@ -171,6 +179,9 @@
 			/>
 			<Tool
 				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
 			/>
 			<Tool
 				Name="VCCodeSignTool"
@@ -252,13 +263,15 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions=" /subsystem:windowsce,4.20 /machine:THUMB /ARMPADCODE"
+				AdditionalOptions=" /subsystem:windowsce,4.20 /machine:THUMB /ARMPADCODE /opt:nowin98 /noentry"
 				AdditionalDependencies="BtSdkCE50.lib"
 				OutputFile="$(SolutionDir)Bin\$(ProjectName)\$(PlatformName)_$(ConfigurationName)\WidcommBT5.dll"
 				LinkIncremental="1"
 				ModuleDefinitionFile=".\WidcommBTDll5.def"
 				GenerateDebugInformation="false"
 				ProgramDatabaseFile="$(SolutionDir)Bin\$(ProjectName)\$(PlatformName)_$(ConfigurationName)/WidcommBT5.pdb"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
 				ImportLibrary="$(SolutionDir)Bin\$(ProjectName)\$(PlatformName)_$(ConfigurationName)\WidcommBT5.lib"
 			/>
 			<Tool
@@ -269,6 +282,9 @@
 			/>
 			<Tool
 				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
 			/>
 			<Tool
 				Name="VCCodeSignTool"
@@ -338,6 +354,8 @@
 				LinkIncremental="1"
 				ModuleDefinitionFile=".\WidcommBTDll5.def"
 				GenerateDebugInformation="true"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
 				ImportLibrary="$(OutDir)/WidcommBTDll5.lib"
 			/>
 			<Tool
@@ -348,6 +366,9 @@
 			/>
 			<Tool
 				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
 			/>
 			<Tool
 				Name="VCCodeSignTool"

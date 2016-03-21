@@ -1,10 +1,10 @@
 #ifndef _dcopy_
 #define _dcopy_
 
-#include "LCore/cmain.h"
-#include "LFile/fiterator.h"
+#include "pfm/main.h"
+#include "pfm/iterator.h"
 
-int ShowCopyMoveDialog ( Str_c & sDest, FileList_t & tList );
-int ShowRenameFilesDialog ( Str_c & sDest, FileList_t & tList );
+int ShowCopyMoveDialog ( Str_c & sDest, SelectedFileList_t & tList );
+int ShowRenameFilesDialog ( Str_c & sDest, SelectedFileList_t & tList );
 
 #endif

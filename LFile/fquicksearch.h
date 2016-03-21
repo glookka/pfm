@@ -1,7 +1,7 @@
 #ifndef _fquicksearch_
 #define _fquicksearch_
 
-#include "LCore/cmain.h"
+#include "pfm/main.h"
 
 const int READ_BUFFER_SIZE = 32768;
 

@@ -1,8 +1,6 @@
 #include "pch.h"
 
 #include "LComm/cirda.h"
-#include "LCore/clog.h"
-#include "LCore/ctimer.h"
 
 const double SHUTDOWN_TIME = 2.0;
 
@@ -103,7 +101,7 @@ DWORD Irda_c::EnumThread ( void * pParam )
 		if ( iRes != SOCKET_ERROR )
 		{
 			DEVICELIST * pDevList = (DEVICELIST * )pIrda->m_dDevListBuff;
-			for ( int i = 0; i < pDevList->numDevice; ++i )
+			for ( unsigned int i = 0; i < pDevList->numDevice; ++i )
 			{
 				IAS_QUERY tIASQuery;
 

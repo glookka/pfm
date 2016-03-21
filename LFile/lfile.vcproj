@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="windows-1251"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8,00"
+	Version="9,00"
 	Name="LFile"
 	ProjectGUID="{9260FABF-2C94-4663-9E0C-1277B15B3DE5}"
 	RootNamespace="LFile"
+	TargetFrameworkVersion="131072"
 	>
 	<Platforms>
 		<Platform
@@ -91,6 +92,9 @@
 				OutputFile="$(PlatformName)\$(ConfigurationName)/lfile.bsc"
 			/>
 			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
 				Name="VCCodeSignTool"
 			/>
 			<Tool
@@ -172,6 +176,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
+				UseUnicodeResponseFiles="false"
 				OutputFile="$(SolutionDir)Lib\$(PlatformName)_$(ConfigurationName)\lfile.lib"
 			/>
 			<Tool
@@ -186,6 +191,9 @@
 				OutputFile="$(PlatformName)\$(ConfigurationName)/lfile.bsc"
 			/>
 			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
 				Name="VCCodeSignTool"
 			/>
 			<Tool
@@ -193,7 +201,7 @@
 			/>
 			<DeploymentTool
 				ForceDirty="-1"
-				RemoteDirectory=""
+				RemoteDirectory="Storage Card\Rinfix Pocket File Manager"
 				RegisterOutput="0"
 				AdditionalFiles=""
 			/>
@@ -346,6 +354,9 @@
 				OutputFile="$(PlatformName)\$(ConfigurationName)/lfile.bsc"
 			/>
 			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
 				Name="VCCodeSignTool"
 			/>
 			<Tool
@@ -431,6 +442,9 @@
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
 				OutputFile="$(PlatformName)\$(ConfigurationName)/lfile.bsc"
+			/>
+			<Tool
+				Name="VCFxCopTool"
 			/>
 			<Tool
 				Name="VCCodeSignTool"
@@ -535,19 +549,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\fcards.h"
-				>
-			</File>
-			<File
 				RelativePath=".\fclipboard.h"
-				>
-			</File>
-			<File
-				RelativePath=".\fcolorgroups.h"
-				>
-			</File>
-			<File
-				RelativePath=".\fcommon.h"
 				>
 			</File>
 			<File
@@ -555,39 +557,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\fcrypt.h"
-				>
-			</File>
-			<File
-				RelativePath=".\fdelete.h"
-				>
-			</File>
-			<File
-				RelativePath=".\ferrors.h"
-				>
-			</File>
-			<File
-				RelativePath=".\ffilter.h"
-				>
-			</File>
-			<File
 				RelativePath=".\ffind.h"
 				>
 			</File>
 			<File
-				RelativePath=".\fiterator.h"
-				>
-			</File>
-			<File
 				RelativePath=".\fmessages.h"
-				>
-			</File>
-			<File
-				RelativePath=".\fmisc.h"
-				>
-			</File>
-			<File
-				RelativePath=".\fmkdir.h"
 				>
 			</File>
 			<File
@@ -596,10 +570,6 @@
 			</File>
 			<File
 				RelativePath=".\fsend.h"
-				>
-			</File>
-			<File
-				RelativePath=".\fsorter.h"
 				>
 			</File>
 		</Filter>
@@ -612,19 +582,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\fcards.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\fclipboard.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\fcolorgroups.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\fcommon.cpp"
 				>
 			</File>
 			<File
@@ -632,39 +590,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\fcrypt.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\fdelete.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\ferrors.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\ffilter.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\ffind.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\fiterator.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\fmessages.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\fmisc.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\fmkdir.cpp"
 				>
 			</File>
 			<File
@@ -673,10 +603,6 @@
 			</File>
 			<File
 				RelativePath=".\fsend.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\fsorter.cpp"
 				>
 			</File>
 		</Filter>

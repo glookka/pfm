@@ -1,0 +1,18 @@
+VAR ( DWORD, 	splitter_border, 			0x707000 )
+VAR ( DWORD, 	splitter_fill, 				0xB0B000 )
+VAR ( DWORD, 	splitter_pressed,			0x00FFFF )
+
+VAR ( DWORD, 	pane_separators, 			0xFFFF00 )
+VAR ( DWORD, 	pane_back, 					0x800000 )
+VAR ( DWORD, 	pane_overflow, 				0x0000FF )
+VAR ( DWORD, 	pane_cursor_bar,			0x808000 )
+VAR ( DWORD, 	pane_cursor_bar_inactive,	0x505000 )
+VAR ( DWORD, 	pane_header_active, 		0x808000 )
+VAR ( DWORD, 	pane_header_inactive,		0x757575 )
+VAR ( DWORD, 	pane_fileinfo_time,			0xFFFF00 )
+VAR ( DWORD, 	pane_fileinfo_date,			0xFFFF00 )
+VAR ( DWORD, 	pane_fileinfo_size,			0xFFFF00 )
+
+VAR ( DWORD, 	pane_font, 					0xFFFF00 )
+VAR ( DWORD, 	pane_font_selected,			0x000000 )
+VAR ( DWORD, 	pane_font_marked, 			0x00FFFF )

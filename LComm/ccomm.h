@@ -1,7 +1,7 @@
 #ifndef _ccomm_
 #define _ccomm_
 
-#include "LCore/cmain.h"
+#include "pfm/main.h"
 
 #include "winsock2.h"
 

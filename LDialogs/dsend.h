@@ -1,10 +1,10 @@
 #ifndef _dsend_
 #define _dsend_
 
-#include "LCore/cmain.h"
-#include "LFile/fiterator.h"
+#include "pfm/main.h"
+#include "pfm/iterator.h"
 
-void ShowIRDlg ( FileList_t & tList );
-void ShowBTDlg ( FileList_t & tList );
+void ShowIRDlg ( SelectedFileList_t & tList );
+void ShowBTDlg ( SelectedFileList_t & tList );
 
 #endif

@@ -1,9 +1,9 @@
 #ifndef _ffind_
 #define _ffind_
 
-#include "LCore/cmain.h"
-#include "LFile/ffilter.h"
-#include "LFile/fiterator.h"
+#include "pfm/main.h"
+#include "pfm/filter.h"
+#include "pfm/iterator.h"
 #include "LFile/fquicksearch.h"
 
 enum SearchFlags_e
@@ -72,16 +72,16 @@ struct FileSearchSettings_t
 class FileSearch_c
 {
 public:
-						FileSearch_c ( FileList_t & tList, const FileSearchSettings_t & tSettings );
+						FileSearch_c ( const SelectedFileList_t & tList, const FileSearchSettings_t & tSettings );
 						~FileSearch_c ();
 				
 	bool				SearchNext ();
 
 	int					GetNumFiles () const;
 	const WIN32_FIND_DATA & GetData ( int nFile ) const;
-	Str_c		GetDirectory ( int nFile ) const;
+	Str_c				GetDirectory ( int nFile ) const;
 
-	Str_c		GetSearchDirectory () const;
+	Str_c				GetSearchDirectory () const;
 
 private:
 	enum
@@ -107,12 +107,12 @@ private:
 	};
 
 	bool							m_bInStringSearch;
-	Array_T < FoundFile_t >		m_dFound;
+	Array_T < FoundFile_t >			m_dFound;
 	Filter_c						m_tFilter;
 	FileIterator_c *				m_pIterator;
 	StringSearch_c *				m_pStringSearch;
 	FileSearchSettings_t			m_tSettings;
-	Str_c					m_sStartDir;
+	Str_c							m_sStartDir;
 
 	bool				CheckAdvancedSettings ( const WIN32_FIND_DATA & tData ) const;
 };

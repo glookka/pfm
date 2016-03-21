@@ -1,18 +1,14 @@
 #include "pch.h"
 
 #include "LDialogs/dcopy_progress.h"
-#include "LCore/clog.h"
-#include "LCore/cfile.h"
 #include "LFile/fcopy.h"
-#include "LSettings/sconfig.h"
-#include "LSettings/slocal.h"
-#include "LPanel/presources.h"
+#include "pfm/config.h"
+#include "pfm/resources.h"
 #include "LDialogs/dcopy.h"
-#include "LUI/udialogs.h"
-#include "LDialogs/dcommon.h"
-#include "LDialogs/derrors.h"
+#include "pfm/gui.h"
+#include "pfm/dialogs/errors.h"
 
-#include "Resources/resource.h"
+#include "Dlls/Resource/resource.h"
 #include "aygshell.h"
 
 extern HWND g_hMainWindow;
@@ -157,15 +153,16 @@ static BOOL CALLBACK MoveDlgProc ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lP
 ///////////////////////////////////////////////////////////////////////////////////////////
 // "preparing..." dialog stuff
 static void MarkCallback ( const Str_c & sFileName, bool bMark )
-{	
-	if ( g_pSourcePanel )
-		g_pSourcePanel->MarkFile ( sFileName, bMark );
+{
+// FIXME
+//	if ( g_pSourcePanel )
+//		g_pSourcePanel->MarkFile ( sFileName, bMark );
 }
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // wrapper funcs
-void DlgCopyFiles ( Panel_c * pSource, const wchar_t * szDest, FileList_t & tList )
+void DlgCopyFiles ( Panel_c * pSource, const wchar_t * szDest, SelectedFileList_t & tList )
 {
 	g_pSourcePanel = pSource;
 	Assert ( ! g_pFileCopier );
@@ -173,7 +170,7 @@ void DlgCopyFiles ( Panel_c * pSource, const wchar_t * szDest, FileList_t & tLis
 	Str_c sDest = szDest;
 	if ( sDest.Empty () )
 	{
-		ShowErrorDialog ( g_hMainWindow, Txt ( T_MSG_WARNING ), Txt ( T_MSG_WRONG_DEST ), IDD_ERROR_OK );
+		ShowErrorDialog ( g_hMainWindow, true, Txt ( T_MSG_WRONG_DEST ), IDD_ERROR_OK );
 		return;
 	}
 
@@ -189,7 +186,7 @@ void DlgCopyFiles ( Panel_c * pSource, const wchar_t * szDest, FileList_t & tLis
 	SafeDelete ( g_pFileCopier );
 }
 
-void DlgMoveFiles ( Panel_c * pSource, const wchar_t * szDest, FileList_t & tList )
+void DlgMoveFiles ( Panel_c * pSource, const wchar_t * szDest, SelectedFileList_t & tList )
 {
 	g_pSourcePanel = pSource;
 	Assert ( ! g_pFileCopier );
@@ -197,7 +194,7 @@ void DlgMoveFiles ( Panel_c * pSource, const wchar_t * szDest, FileList_t & tLis
 
 	if ( sDest.Empty () )
 	{
-		ShowErrorDialog ( g_hMainWindow, Txt ( T_MSG_WARNING ), Txt ( T_MSG_WRONG_DEST ), IDD_ERROR_OK );
+		ShowErrorDialog ( g_hMainWindow, true, Txt ( T_MSG_WRONG_DEST ), IDD_ERROR_OK );
 		return;
 	}
 

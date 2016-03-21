@@ -1,7 +1,6 @@
 #include "pch.h"
 
 #include "LComm/ccomm.h"
-#include "LCore/clog.h"
 #include "LComm/cbluetooth.h"
 
 #include "bthutil.h"

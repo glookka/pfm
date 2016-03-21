@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 9.00
+# Visual Studio 2005
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "keys", "Utils\Keys\keys.vcproj", "{29FDDE2D-03C5-4CDB-A21D-DA122511FE94}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "rcdata", "Utils\RCData\rcdata.vcproj", "{0FD6C04F-D36F-4FB9-9BE9-0C8F660F0266}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{29FDDE2D-03C5-4CDB-A21D-DA122511FE94}.Debug|Win32.ActiveCfg = Debug|Win32
+		{29FDDE2D-03C5-4CDB-A21D-DA122511FE94}.Debug|Win32.Build.0 = Debug|Win32
+		{29FDDE2D-03C5-4CDB-A21D-DA122511FE94}.Release|Win32.ActiveCfg = Release|Win32
+		{29FDDE2D-03C5-4CDB-A21D-DA122511FE94}.Release|Win32.Build.0 = Release|Win32
+		{0FD6C04F-D36F-4FB9-9BE9-0C8F660F0266}.Debug|Win32.ActiveCfg = Debug|Win32
+		{0FD6C04F-D36F-4FB9-9BE9-0C8F660F0266}.Debug|Win32.Build.0 = Debug|Win32
+		{0FD6C04F-D36F-4FB9-9BE9-0C8F660F0266}.Release|Win32.ActiveCfg = Release|Win32
+		{0FD6C04F-D36F-4FB9-9BE9-0C8F660F0266}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

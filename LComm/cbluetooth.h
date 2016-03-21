@@ -1,7 +1,7 @@
 #ifndef _cbluetooth_
 #define _cbluetooth_
 
-#include "LCore/cmain.h"
+#include "pfm/main.h"
 
 typedef bool	(*fnWBT_CreateStack) ();
 typedef void	(*fnWBT_DestroyStack) ();

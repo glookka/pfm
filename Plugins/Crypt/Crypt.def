@@ -1,0 +1,6 @@
+LIBRARY      "Crypt"
+
+EXPORTS
+	HandleMenu
+	SetStartupInfo
+	ExitPFM

@@ -2,28 +2,30 @@
 
 #include "LFile/fclipboard.h"
 #include "LDialogs/dcopy_progress.h"
-#include "FileManager/filemanager.h"
+#include "pfm/pfm.h"
 
 namespace clipboard
 {
-	FileList_t				g_Files;
-	Array_T <FileInfo_t>	g_Infos;
+	SelectedFileList_t				g_Files;
+	Array_T <PanelItem_t>	g_Infos;
 	bool					g_bMove;
 
 	void Copy ( Panel_c * pPanel )
 	{
 		Assert ( pPanel );
-		g_Files.Reset ();
-		g_Infos.Reset ();
+// FIXME
+//		g_Files.Reset ();
+//		g_Infos.Reset ();
 
-		if ( pPanel->GenerateFileList ( g_Files ) )
+		// FIXME
+/*		if ( pPanel->GenerateFileList ( g_Files ) )
 		{
 			for ( int i = 0; i < g_Files.m_dFiles.Length (); ++i )
 				g_Infos.Add ( *g_Files.m_dFiles [i] );
 
 			for ( int i = 0; i < g_Files.m_dFiles.Length (); ++i )
 				g_Files.m_dFiles [i] = &(g_Infos [i]);
-		}
+		}*/
 		
 		g_bMove = false;
 	}

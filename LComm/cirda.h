@@ -1,8 +1,8 @@
 #ifndef _irda_
 #define _irda_
 
-#include "LCore/cmain.h"
-#include "LCore/cstr.h"
+#include "pfm/main.h"
+#include "pfm/std.h"
 #include "LComm/ccomm.h"
 
 #include "af_irda.h"
@@ -60,8 +60,8 @@ private:
 class IrdaObexClient_c : public WindowNotifier_c
 {
 public:
-	static const int MAX_PACKET_SIZE = 16384;
-	static const int MIN_PACKET_SIZE = 256;
+	static const unsigned int MAX_PACKET_SIZE = 16384;
+	static const unsigned int MIN_PACKET_SIZE = 256;
 
 					IrdaObexClient_c ( SOCKET & tSocket, BYTE * pDeviceId, int iIrdaAttribute );
 					~IrdaObexClient_c ();

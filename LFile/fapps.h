@@ -1,8 +1,8 @@
 #ifndef _fapps_
 #define _fapps_
 
-#include "LCore/cmain.h"
-#include "LCore/cstr.h"
+#include "pfm/main.h"
+#include "pfm/std.h"
 
 namespace apps
 {

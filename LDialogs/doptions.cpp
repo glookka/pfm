@@ -1,31 +1,23 @@
 #include "pch.h"
 
 #include "LDialogs/doptions.h"
-#include "LCore/clog.h"
-#include "LCore/cfile.h"
-#include "LCore/cos.h"
-#include "LCore/cbuttons.h"
-#include "LSettings/sconfig.h"
-#include "LSettings/scolors.h"
-#include "LSettings/sbuttons.h"
-#include "LSettings/slocal.h"
-#include "LPanel/presources.h"
-#include "LPanel/pview.h"
-#include "LPanel/pfile.h"
-#include "LUI/udialogs.h"
-#include "LFile/fiterator.h"
-#include "LFile/fcolorgroups.h"
+#include "pfm/std.h"
+#include "pfm/config.h"
+#include "pfm/resources.h"
+#include "pfm/gui.h"
+#include "pfm/panel.h"
+#include "pfm/menu.h"
+#include "pfm/pfm.h"
+#include "pfm/iterator.h"
+
+#include "pfm/dialogs/apps.h"
+#include "pfm/dialogs/bookmarks.h"
+
 #include "LFile/fapps.h"
-#include "LFile/fmisc.h"
-#include "LDialogs/dcommon.h"
-#include "LDialogs/derrors.h"
-#include "LDialogs/dbookmarks.h"
-#include "LDialogs/dapps.h"
-#include "Filemanager/filemanager.h"
-#include "Filemanager/fmmenus.h"
+#include "pfm/dialogs/errors.h"
 
 #include "aygshell.h"
-#include "Resources/resource.h"
+#include "Dlls/Resource/resource.h"
 
 extern HINSTANCE g_hAppInstance;
 extern HWND g_hMainWindow;
@@ -36,9 +28,9 @@ bool g_bRegister = false;
 bool g_bSheduleRefresh = false;
 bool g_bUpdateAfterLoad = false;
 
-int StrCompare ( const Str_c & sStr1, const Str_c & sStr2 )
+int StrCompare ( const void * sStr1, const void * sStr2 )
 {
-	return wcscmp ( sStr1, sStr2 );
+	return wcscmp ( *(Str_c *)sStr1, *(Str_c *)sStr2 );
 }
 
 
@@ -58,18 +50,24 @@ static bool CheckScheme ( const Str_c & sPath )
 }
 
 // enumerate available color schemes
-static void EnumColorSchemes ( Array_T <Str_c> & dSchemes )
+static void FindColorSchemes ( Array_T <Str_c> & dSchemes )
 {
 	dSchemes.Clear ();
 	FileIteratorTree_c tIterator;
-	tIterator.IterateStart ( GetExecutablePath (), false );
+	Str_c sRoot = GetExecutablePath ();
+	Str_c sFullSchemeName;
+	AppendSlash ( sRoot );
+	sRoot += L"schemes\\";
+
+	tIterator.IterateStart ( sRoot, false );
 	while ( tIterator.IterateNext () )
 	{
 		const WIN32_FIND_DATA * pData = tIterator.GetData ();
 		if ( pData && ( pData->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) && ! tIterator.Is2ndPassDir () )
 		{
-			if ( CheckScheme ( AppendSlash ( GetExecutablePath () + tIterator.GetFileName () ) ) )
-				dSchemes.Add ( tIterator.GetFileName () );
+			sFullSchemeName = tIterator.GetFullName ();
+			if ( CheckScheme ( AppendSlash ( sFullSchemeName ) ) )
+				dSchemes.Add ( sFullSchemeName );
 		}
 	}
 
@@ -88,12 +86,12 @@ void ApplyDisplayChanges ( HWND hDlg )
 {
 	wchar_t szBuf [256];
 	GetDlgItemText ( hDlg, IDC_FONT_NAME, szBuf, 255 );
-	g_tConfig.font_name = szBuf;
+	cfg->font_name = szBuf;
 
-	g_tConfig.font_height = GetDlgItemInt ( hDlg, IDC_FONT_SIZE, NULL, FALSE );
+	cfg->font_height = GetDlgItemInt ( hDlg, IDC_FONT_SIZE, NULL, FALSE );
 
-	g_tConfig.font_bold = IsDlgButtonChecked ( hDlg, IDC_FONT_BOLD ) == BST_CHECKED;
-	g_tConfig.font_clear_type = IsDlgButtonChecked ( hDlg, IDC_FONT_SMOOTH ) == BST_CHECKED;
+	cfg->font_bold = IsDlgButtonChecked ( hDlg, IDC_FONT_BOLD ) == BST_CHECKED;
+	cfg->font_clear_type = IsDlgButtonChecked ( hDlg, IDC_FONT_SMOOTH ) == BST_CHECKED;
 
 	g_tPanelFont.Shutdown ();
 	g_tPanelFont.Init ();
@@ -108,10 +106,10 @@ void ApplyColorChanges ( HWND hDlg )
 	if ( IsWindowEnabled ( hScheme ) )
 	{
 		GetDlgItemText ( hDlg, IDC_SCHEME, szBuf, 255 );
-		if ( g_tConfig.color_scheme != szBuf )
+		if ( cfg->color_scheme != szBuf )
 		{
-			g_tConfig.color_scheme = szBuf;
-			FMLoadColorScheme ( g_tConfig.color_scheme );
+			cfg->color_scheme = szBuf;
+			FMLoadColorScheme ( cfg->color_scheme );
 		}
 	}
 }
@@ -149,19 +147,19 @@ static BOOL CALLBACK DlgProcStyle ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM l
 			for ( int i = 0; i < g_dFonts.Length (); ++i )
 				SendMessage ( hFontCombo, CB_ADDSTRING, 0, (LPARAM)( g_dFonts [i].lfFaceName ) );
 
-			SendMessage ( hFontCombo, CB_SELECTSTRING, -1, (LPARAM)( g_tConfig.font_name.c_str () ) );
+			SendMessage ( hFontCombo, CB_SELECTSTRING, -1, (LPARAM)( cfg->font_name.c_str () ) );
 
-			SetDlgItemInt ( hDlg, IDC_FONT_SIZE, g_tConfig.font_height, FALSE );
+			SetDlgItemInt ( hDlg, IDC_FONT_SIZE, cfg->font_height, FALSE );
 
 			HWND hSizeSpin = GetDlgItem ( hDlg, IDC_FONT_SIZE_SPIN );
 			SendMessage ( hSizeSpin, UDM_SETRANGE, 0, (LPARAM)MAKELONG ( 50, 1 ) );
 
-			CheckDlgButton ( hDlg, IDC_FONT_BOLD, g_tConfig.font_bold ? BST_CHECKED : BST_UNCHECKED );
-			CheckDlgButton ( hDlg, IDC_FONT_SMOOTH, g_tConfig.font_clear_type ? BST_CHECKED : BST_UNCHECKED );
+			CheckDlgButton ( hDlg, IDC_FONT_BOLD, cfg->font_bold ? BST_CHECKED : BST_UNCHECKED );
+			CheckDlgButton ( hDlg, IDC_FONT_SMOOTH, cfg->font_clear_type ? BST_CHECKED : BST_UNCHECKED );
 
 			// schemes
 			Array_T <Str_c> dSchemes;
-			EnumColorSchemes ( dSchemes );
+			FindColorSchemes ( dSchemes );
 
 			HWND hSchemeCombo = GetDlgItem ( hDlg, IDC_SCHEME );
 			SendMessage ( hSchemeCombo, CB_RESETCONTENT, 0, 0 );
@@ -176,16 +174,17 @@ static BOOL CALLBACK DlgProcStyle ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM l
 				for ( int i = 0; i < dSchemes.Length (); ++i )
 					SendMessage ( hSchemeCombo, CB_ADDSTRING, 0, (LPARAM)( dSchemes [i].c_str () ) );
 
-				SendMessage ( hSchemeCombo, CB_SELECTSTRING, -1, (LPARAM)( g_tConfig.color_scheme.c_str () ) );
+				SendMessage ( hSchemeCombo, CB_SELECTSTRING, -1, (LPARAM)( cfg->color_scheme.c_str () ) );
 			}
 
-			CheckDlgButton ( hDlg, IDC_CURSOR_BAR, g_tConfig.pane_cursor_bar ? BST_CHECKED : BST_UNCHECKED );
+//			FIXME
+//			CheckDlgButton ( hDlg, IDC_CURSOR_BAR, cfg->pane_cursor_bar ? BST_CHECKED : BST_UNCHECKED );
 
-			sOldColorScheme = g_tConfig.color_scheme;
-			sOldFontName = g_tConfig.font_name;
-			iOldFontHeight = g_tConfig.font_height;
-			bOldFontBold = g_tConfig.font_bold;
-			bOldFontClearType = g_tConfig.font_clear_type;
+			sOldColorScheme = cfg->color_scheme;
+			sOldFontName = cfg->font_name;
+			iOldFontHeight = cfg->font_height;
+			bOldFontBold = cfg->font_bold;
+			bOldFontClearType = cfg->font_clear_type;
 	
 			bInitFinished = true;
 		}
@@ -210,7 +209,7 @@ static BOOL CALLBACK DlgProcStyle ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM l
 			HDC hDC = BeginPaint ( hDlg, &tPS );
 
 			SetBkMode ( hDC, TRANSPARENT );
-			SetTextColor ( hDC, g_tColors.pane_font );
+			SetTextColor ( hDC, clrs->pane_font );
 
 			FillRect ( hDC, &tRect, g_tResources.m_hBackgroundBrush );
 
@@ -266,7 +265,8 @@ static BOOL CALLBACK DlgProcStyle ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM l
 				break;
 			case PSN_APPLY:
 				bInitFinished = false;
-				g_tConfig.pane_cursor_bar = IsDlgButtonChecked ( hDlg, IDC_CURSOR_BAR ) == BST_CHECKED;
+//			FIXME
+//				cfg->pane_cursor_bar = IsDlgButtonChecked ( hDlg, IDC_CURSOR_BAR ) == BST_CHECKED;
 
 				ApplyDisplayChanges ( hDlg );
 				ApplyColorChanges ( hDlg );
@@ -277,16 +277,16 @@ static BOOL CALLBACK DlgProcStyle ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM l
 				break;
 			case PSN_RESET:
 				bInitFinished = false;
-				g_tConfig.font_name = sOldFontName;
-				g_tConfig.font_height = iOldFontHeight;
-				g_tConfig.font_bold = bOldFontBold;
-				g_tConfig.font_clear_type = bOldFontClearType;
+				cfg->font_name = sOldFontName;
+				cfg->font_height = iOldFontHeight;
+				cfg->font_bold = bOldFontBold;
+				cfg->font_clear_type = bOldFontClearType;
 				g_tPanelFont.Shutdown ();
 				g_tPanelFont.Init ();
 
-				if ( g_tConfig.color_scheme != sOldColorScheme )
+				if ( cfg->color_scheme != sOldColorScheme )
 				{
-					g_tConfig.color_scheme = sOldColorScheme;
+					cfg->color_scheme = sOldColorScheme;
 					FMLoadColorScheme ( sOldColorScheme );
 					FMUpdatePanelRects ();
 					g_bSheduleRefresh = true;
@@ -311,9 +311,9 @@ static void InitViewList ( HWND hDlg, int iId )
 	SendMessage ( hList, CB_ADDSTRING, 0, (LPARAM)( Txt ( T_MNU_VIEW_1C ) ) );
 	SendMessage ( hList, CB_ADDSTRING, 0, (LPARAM)( Txt ( T_MNU_VIEW_2C ) ) );
 	SendMessage ( hList, CB_ADDSTRING, 0, (LPARAM)( Txt ( T_MNU_VIEW_3C ) ) );
-	SendMessage ( hList, CB_ADDSTRING, 0, (LPARAM)( Txt ( T_MNU_VIEW_D1 ) ) );
-	SendMessage ( hList, CB_ADDSTRING, 0, (LPARAM)( Txt ( T_MNU_VIEW_D2 ) ) );
-	SendMessage ( hList, CB_ADDSTRING, 0, (LPARAM)( Txt ( T_MNU_VIEW_D3 ) ) );
+	SendMessage ( hList, CB_ADDSTRING, 0, (LPARAM)( Txt ( T_MNU_VIEW_BRIEF ) ) );
+	SendMessage ( hList, CB_ADDSTRING, 0, (LPARAM)( Txt ( T_MNU_VIEW_MEDIUM ) ) );
+	SendMessage ( hList, CB_ADDSTRING, 0, (LPARAM)( Txt ( T_MNU_VIEW_FULL ) ) );
 }
 
 
@@ -352,7 +352,7 @@ static void InitLongcut ( HWND hDlg, int iId )
 	SendMessage ( hList, CB_ADDSTRING, 0, (LPARAM)( Txt ( T_DLG_OPTIONS_LONGCUT1 ) ) );
 	SendMessage ( hList, CB_ADDSTRING, 0, (LPARAM)( Txt ( T_DLG_OPTIONS_LONGCUT2 ) ) );
 
-	SendMessage ( hList, CB_SETCURSEL, g_tConfig.pane_long_cut, 0 );
+	SendMessage ( hList, CB_SETCURSEL, cfg->pane_long_cut, 0 );
 }
 
 
@@ -373,20 +373,20 @@ static BOOL CALLBACK DlgProcPanes ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM l
 			InitViewList ( hDlg, IDC_RIGHT_VIEW );
 			InitSortList ( hDlg, IDC_RIGHT_SORT );
 
-			SendMessage ( GetDlgItem ( hDlg, IDC_LEFT_VIEW ), CB_SETCURSEL, g_tConfig.file_pane_1_view, 0 );
-			SendMessage ( GetDlgItem ( hDlg, IDC_LEFT_SORT ), CB_SETCURSEL, g_tConfig.file_pane_1_sort, 0 );
-			CheckDlgButton ( hDlg, IDC_LEFT_REVERSE, g_tConfig.file_pane_1_sort_reverse ? BST_CHECKED : BST_UNCHECKED );
+			SendMessage ( GetDlgItem ( hDlg, IDC_LEFT_VIEW ), CB_SETCURSEL, cfg->pane_1_view, 0 );
+			SendMessage ( GetDlgItem ( hDlg, IDC_LEFT_SORT ), CB_SETCURSEL, cfg->pane_1_sort, 0 );
+			CheckDlgButton ( hDlg, IDC_LEFT_REVERSE, cfg->pane_1_sort_reverse ? BST_CHECKED : BST_UNCHECKED );
 
-			SendMessage ( GetDlgItem ( hDlg, IDC_RIGHT_VIEW ), CB_SETCURSEL, g_tConfig.file_pane_2_view, 0 );
-			SendMessage ( GetDlgItem ( hDlg, IDC_RIGHT_SORT ), CB_SETCURSEL, g_tConfig.file_pane_2_sort, 0 );
-			CheckDlgButton ( hDlg, IDC_RIGHT_REVERSE, g_tConfig.file_pane_2_sort_reverse ? BST_CHECKED : BST_UNCHECKED );
+			SendMessage ( GetDlgItem ( hDlg, IDC_RIGHT_VIEW ), CB_SETCURSEL, cfg->pane_2_view, 0 );
+			SendMessage ( GetDlgItem ( hDlg, IDC_RIGHT_SORT ), CB_SETCURSEL, cfg->pane_2_sort, 0 );
+			CheckDlgButton ( hDlg, IDC_RIGHT_REVERSE, cfg->pane_2_sort_reverse ? BST_CHECKED : BST_UNCHECKED );
 
 			// combo
 			// 0 == auto
 			// 1 == vertical
 			// 2 == horizontal
 			InitOrientation ( hDlg, IDC_LAYOUT );
-			SendMessage ( GetDlgItem ( hDlg, IDC_LAYOUT ), CB_SETCURSEL, g_tConfig.pane_force_layout + 1, 0 );
+			SendMessage ( GetDlgItem ( hDlg, IDC_LAYOUT ), CB_SETCURSEL, cfg->pane_force_layout + 1, 0 );
 		}
 	    break;
 
@@ -399,21 +399,21 @@ static BOOL CALLBACK DlgProcPanes ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM l
 				Help ( L"Options" );
 				break;
 			case PSN_APPLY:
-				g_tConfig.file_pane_1_view = SendMessage ( GetDlgItem ( hDlg, IDC_LEFT_VIEW ), CB_GETCURSEL, 0, 0 );
-				g_tConfig.file_pane_1_sort = SendMessage ( GetDlgItem ( hDlg, IDC_LEFT_SORT ), CB_GETCURSEL, 0, 0 );
-				g_tConfig.file_pane_1_sort_reverse = IsDlgButtonChecked ( hDlg, IDC_LEFT_REVERSE ) == BST_CHECKED;
+				cfg->pane_1_view = SendMessage ( GetDlgItem ( hDlg, IDC_LEFT_VIEW ), CB_GETCURSEL, 0, 0 );
+				cfg->pane_1_sort = SendMessage ( GetDlgItem ( hDlg, IDC_LEFT_SORT ), CB_GETCURSEL, 0, 0 );
+				cfg->pane_1_sort_reverse = IsDlgButtonChecked ( hDlg, IDC_LEFT_REVERSE ) == BST_CHECKED;
 
-				g_tConfig.file_pane_2_view = SendMessage ( GetDlgItem ( hDlg, IDC_RIGHT_VIEW ), CB_GETCURSEL, 0, 0 );
-				g_tConfig.file_pane_2_sort = SendMessage ( GetDlgItem ( hDlg, IDC_RIGHT_SORT ), CB_GETCURSEL, 0, 0 );
-				g_tConfig.file_pane_2_sort_reverse = IsDlgButtonChecked ( hDlg, IDC_RIGHT_REVERSE ) == BST_CHECKED;
+				cfg->pane_2_view = SendMessage ( GetDlgItem ( hDlg, IDC_RIGHT_VIEW ), CB_GETCURSEL, 0, 0 );
+				cfg->pane_2_sort = SendMessage ( GetDlgItem ( hDlg, IDC_RIGHT_SORT ), CB_GETCURSEL, 0, 0 );
+				cfg->pane_2_sort_reverse = IsDlgButtonChecked ( hDlg, IDC_RIGHT_REVERSE ) == BST_CHECKED;
 
 				int iLayout = SendMessage ( GetDlgItem ( hDlg, IDC_LAYOUT ), CB_GETCURSEL, 0, 0 ) - 1;
 
 				g_bUpdateAfterLoad = true;
 
-				if ( iLayout != g_tConfig.pane_force_layout )
+				if ( iLayout != cfg->pane_force_layout )
 				{
-					g_tConfig.pane_force_layout = iLayout;
+					cfg->pane_force_layout = iLayout;
 					FMRepositionPanels ( true );
 				}
 
@@ -455,21 +455,22 @@ static BOOL CALLBACK DlgProcView ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lP
 			DlgTxt ( hDlg, IDC_LONG_STATIC, T_DLG_OPTIONS_LONGCUT );
 			DlgTxt ( hDlg, IDC_DIR, T_DLG_OPTIONS_ADDDIR );
 
-			CheckDlgButton ( hDlg, IDC_ICON_ONE, g_tConfig.pane_1c_file_icon ? BST_CHECKED : BST_UNCHECKED );
-			CheckDlgButton ( hDlg, IDC_ICON_MID, g_tConfig.pane_2c_file_icon ? BST_CHECKED : BST_UNCHECKED );
-			CheckDlgButton ( hDlg, IDC_ICON_SHORT, g_tConfig.pane_3c_file_icon ? BST_CHECKED : BST_UNCHECKED );
-			CheckDlgButton ( hDlg, IDC_ICON_FULL, g_tConfig.pane_full_file_icon ? BST_CHECKED : BST_UNCHECKED );
+//			FIXME
+/*			CheckDlgButton ( hDlg, IDC_ICON_ONE, cfg->pane_1c_file_icon ? BST_CHECKED : BST_UNCHECKED );
+			CheckDlgButton ( hDlg, IDC_ICON_MID, cfg->pane_2c_file_icon ? BST_CHECKED : BST_UNCHECKED );
+			CheckDlgButton ( hDlg, IDC_ICON_SHORT, cfg->pane_3c_file_icon ? BST_CHECKED : BST_UNCHECKED );
+			CheckDlgButton ( hDlg, IDC_ICON_FULL, cfg->pane_full_file_icon ? BST_CHECKED : BST_UNCHECKED );
 
-			CheckDlgButton ( hDlg, IDC_EXT_ONE, g_tConfig.pane_1c_separate_ext ? BST_CHECKED : BST_UNCHECKED );
-			CheckDlgButton ( hDlg, IDC_EXT_MID, g_tConfig.pane_2c_separate_ext ? BST_CHECKED : BST_UNCHECKED );
-			CheckDlgButton ( hDlg, IDC_EXT_SHORT, g_tConfig.pane_3c_separate_ext ? BST_CHECKED : BST_UNCHECKED );
-			CheckDlgButton ( hDlg, IDC_EXT_FULL, g_tConfig.pane_full_separate_ext ? BST_CHECKED : BST_UNCHECKED );
+			CheckDlgButton ( hDlg, IDC_EXT_ONE, cfg->pane_1c_separate_ext ? BST_CHECKED : BST_UNCHECKED );
+			CheckDlgButton ( hDlg, IDC_EXT_MID, cfg->pane_2c_separate_ext ? BST_CHECKED : BST_UNCHECKED );
+			CheckDlgButton ( hDlg, IDC_EXT_SHORT, cfg->pane_3c_separate_ext ? BST_CHECKED : BST_UNCHECKED );
+			CheckDlgButton ( hDlg, IDC_EXT_FULL, cfg->pane_full_separate_ext ? BST_CHECKED : BST_UNCHECKED );*/
 
-			CheckDlgButton ( hDlg, IDC_ICON_BOTTOM, g_tConfig.pane_fileinfo_icon ? BST_CHECKED : BST_UNCHECKED );
-			CheckDlgButton ( hDlg, IDC_DATE_BOTTOM, g_tConfig.pane_fileinfo_date ? BST_CHECKED : BST_UNCHECKED );
-			CheckDlgButton ( hDlg, IDC_TIME_BOTTOM, g_tConfig.pane_fileinfo_time ? BST_CHECKED : BST_UNCHECKED );
+			CheckDlgButton ( hDlg, IDC_ICON_BOTTOM, cfg->pane_fileinfo_icon ? BST_CHECKED : BST_UNCHECKED );
+			CheckDlgButton ( hDlg, IDC_DATE_BOTTOM, cfg->pane_fileinfo_date ? BST_CHECKED : BST_UNCHECKED );
+			CheckDlgButton ( hDlg, IDC_TIME_BOTTOM, cfg->pane_fileinfo_time ? BST_CHECKED : BST_UNCHECKED );
 
-			CheckDlgButton ( hDlg, IDC_DIR, g_tConfig.pane_dir_marker ? BST_CHECKED : BST_UNCHECKED );
+			CheckDlgButton ( hDlg, IDC_DIR, cfg->pane_dir_marker ? BST_CHECKED : BST_UNCHECKED );
 
 			InitLongcut ( hDlg, IDC_LONGCUT );
 		}
@@ -483,22 +484,24 @@ static BOOL CALLBACK DlgProcView ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lP
 				Help ( L"Options" );
 				break;
 			case PSN_APPLY:
-				g_tConfig.pane_1c_file_icon = 	IsDlgButtonChecked ( hDlg, IDC_ICON_ONE ) == BST_CHECKED;
-				g_tConfig.pane_2c_file_icon = 	IsDlgButtonChecked ( hDlg, IDC_ICON_MID ) == BST_CHECKED;
-				g_tConfig.pane_3c_file_icon = 	IsDlgButtonChecked ( hDlg, IDC_ICON_SHORT ) == BST_CHECKED;
-				g_tConfig.pane_full_file_icon = 	IsDlgButtonChecked ( hDlg, IDC_ICON_FULL ) == BST_CHECKED;
+				// FIXME
+				/*
+				cfg->pane_1c_file_icon = 	IsDlgButtonChecked ( hDlg, IDC_ICON_ONE ) == BST_CHECKED;
+				cfg->pane_2c_file_icon = 	IsDlgButtonChecked ( hDlg, IDC_ICON_MID ) == BST_CHECKED;
+				cfg->pane_3c_file_icon = 	IsDlgButtonChecked ( hDlg, IDC_ICON_SHORT ) == BST_CHECKED;
+				cfg->pane_full_file_icon = 	IsDlgButtonChecked ( hDlg, IDC_ICON_FULL ) == BST_CHECKED;
 
-				g_tConfig.pane_1c_separate_ext = 	IsDlgButtonChecked ( hDlg, IDC_EXT_ONE ) == BST_CHECKED;
-				g_tConfig.pane_2c_separate_ext =	IsDlgButtonChecked ( hDlg, IDC_EXT_MID ) == BST_CHECKED;
-				g_tConfig.pane_3c_separate_ext	=	IsDlgButtonChecked ( hDlg, IDC_EXT_SHORT ) == BST_CHECKED;
-				g_tConfig.pane_full_separate_ext =	IsDlgButtonChecked ( hDlg, IDC_EXT_FULL ) == BST_CHECKED;
+				cfg->pane_1c_separate_ext = 	IsDlgButtonChecked ( hDlg, IDC_EXT_ONE ) == BST_CHECKED;
+				cfg->pane_2c_separate_ext =	IsDlgButtonChecked ( hDlg, IDC_EXT_MID ) == BST_CHECKED;
+				cfg->pane_3c_separate_ext	=	IsDlgButtonChecked ( hDlg, IDC_EXT_SHORT ) == BST_CHECKED;
+				cfg->pane_full_separate_ext =	IsDlgButtonChecked ( hDlg, IDC_EXT_FULL ) == BST_CHECKED;*/
 
-				g_tConfig.pane_fileinfo_icon = IsDlgButtonChecked ( hDlg, IDC_ICON_BOTTOM ) == BST_CHECKED;
-				g_tConfig.pane_fileinfo_date = IsDlgButtonChecked ( hDlg, IDC_DATE_BOTTOM ) == BST_CHECKED;
-				g_tConfig.pane_fileinfo_time = IsDlgButtonChecked ( hDlg, IDC_TIME_BOTTOM ) == BST_CHECKED;
+				cfg->pane_fileinfo_icon = IsDlgButtonChecked ( hDlg, IDC_ICON_BOTTOM ) == BST_CHECKED;
+				cfg->pane_fileinfo_date = IsDlgButtonChecked ( hDlg, IDC_DATE_BOTTOM ) == BST_CHECKED;
+				cfg->pane_fileinfo_time = IsDlgButtonChecked ( hDlg, IDC_TIME_BOTTOM ) == BST_CHECKED;
 
-				g_tConfig.pane_dir_marker =	IsDlgButtonChecked ( hDlg, IDC_DIR ) == BST_CHECKED;
-				g_tConfig.pane_long_cut = SendMessage ( GetDlgItem ( hDlg, IDC_LONGCUT ), CB_GETCURSEL, 0, 0 );
+				cfg->pane_dir_marker =	IsDlgButtonChecked ( hDlg, IDC_DIR ) == BST_CHECKED;
+				cfg->pane_long_cut = SendMessage ( GetDlgItem ( hDlg, IDC_LONGCUT ), CB_GETCURSEL, 0, 0 );
 				break;
 			}
 		}
@@ -519,10 +522,11 @@ static BOOL CALLBACK DlgProcPanes2 ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM 
 	{
 	case WM_INITDIALOG:
 		DlgTxt ( hDlg, IDC_FORCE, T_DLG_OPTIONS_FORCEMAX );
-		CheckDlgButton ( hDlg, IDC_FORCE, g_tConfig.pane_maximized_force ? BST_CHECKED : BST_UNCHECKED );
+// FIXME
+//		CheckDlgButton ( hDlg, IDC_FORCE, cfg->pane_maximized_force ? BST_CHECKED : BST_UNCHECKED );
 		InitViewList ( hDlg, IDC_VIEW_COMBO );
-		SendMessage ( GetDlgItem ( hDlg, IDC_VIEW_COMBO ), CB_SETCURSEL, g_tConfig.pane_maximized_view, 0 );
-		UpdateForcedControls ( hDlg, g_tConfig.pane_maximized_force );
+		SendMessage ( GetDlgItem ( hDlg, IDC_VIEW_COMBO ), CB_SETCURSEL, cfg->pane_maximized_view, 0 );
+//		UpdateForcedControls ( hDlg, cfg->pane_maximized_force );
 		break;
 
 	case WM_COMMAND:
@@ -551,8 +555,9 @@ static BOOL CALLBACK DlgProcPanes2 ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM 
 				Help ( L"Options" );
 				break;
 			case PSN_APPLY:
-				g_tConfig.pane_maximized_force = IsDlgButtonChecked ( hDlg, IDC_FORCE ) == BST_CHECKED;
-				g_tConfig.pane_maximized_view = SendMessage ( GetDlgItem ( hDlg, IDC_VIEW_COMBO ), CB_GETCURSEL, 0, 0 );
+// FIXME
+//				cfg->pane_maximized_force = IsDlgButtonChecked ( hDlg, IDC_FORCE ) == BST_CHECKED;
+				cfg->pane_maximized_view = SendMessage ( GetDlgItem ( hDlg, IDC_VIEW_COMBO ), CB_GETCURSEL, 0, 0 );
 				g_bUpdateAfterLoad = true;
 				break;
 			}
@@ -575,11 +580,11 @@ static BOOL CALLBACK DlgProcFiles ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM l
 		DlgTxt ( hDlg, IDC_SHOW_ROM, T_DLG_OPTIONS_ROM );
 		DlgTxt ( hDlg, IDC_FILTERDIRS, T_DLG_OPTIONS_FILTERDIRS );
 
-		CheckDlgButton ( hDlg, IDC_SHOW_HIDDEN, g_tConfig.file_pane_show_hidden ? BST_CHECKED : BST_UNCHECKED );
-		CheckDlgButton ( hDlg, IDC_SHOW_SYSTEM, g_tConfig.file_pane_show_system ? BST_CHECKED : BST_UNCHECKED );
-		CheckDlgButton ( hDlg, IDC_SHOW_ROM, g_tConfig.file_pane_show_rom ? BST_CHECKED : BST_UNCHECKED );
+		CheckDlgButton ( hDlg, IDC_SHOW_HIDDEN, cfg->pane_show_hidden ? BST_CHECKED : BST_UNCHECKED );
+		CheckDlgButton ( hDlg, IDC_SHOW_SYSTEM, cfg->pane_show_system ? BST_CHECKED : BST_UNCHECKED );
+		CheckDlgButton ( hDlg, IDC_SHOW_ROM, cfg->pane_show_rom ? BST_CHECKED : BST_UNCHECKED );
 
-		CheckDlgButton ( hDlg, IDC_FILTERDIRS, g_tConfig.filter_include_folders ? BST_CHECKED : BST_UNCHECKED );
+		CheckDlgButton ( hDlg, IDC_FILTERDIRS, cfg->filter_include_dirs ? BST_CHECKED : BST_UNCHECKED );
 		break;
 
 	case WM_NOTIFY:
@@ -596,20 +601,20 @@ static BOOL CALLBACK DlgProcFiles ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM l
 					bool bSystem = IsDlgButtonChecked ( hDlg, IDC_SHOW_SYSTEM ) == BST_CHECKED;
 					bool bROM = IsDlgButtonChecked ( hDlg, IDC_SHOW_ROM ) == BST_CHECKED;
 
-					if ( bHidden != g_tConfig.file_pane_show_hidden ||
-						bSystem != g_tConfig.file_pane_show_system ||
-						bROM != g_tConfig.file_pane_show_rom )
+					if ( bHidden != cfg->pane_show_hidden ||
+						bSystem != cfg->pane_show_system ||
+						bROM != cfg->pane_show_rom )
 					{
-						g_tConfig.file_pane_show_hidden = bHidden;
-						g_tConfig.file_pane_show_system = bSystem;
-						g_tConfig.file_pane_show_rom = bROM;
+						cfg->pane_show_hidden = bHidden;
+						cfg->pane_show_system = bSystem;
+						cfg->pane_show_rom = bROM;
 
-						FMGetPanel1 ()->SetVisibility ( g_tConfig.file_pane_show_hidden, g_tConfig.file_pane_show_system, g_tConfig.file_pane_show_rom );
-						FMGetPanel2 ()->SetVisibility ( g_tConfig.file_pane_show_hidden, g_tConfig.file_pane_show_system, g_tConfig.file_pane_show_rom );
+						FMGetPanel1 ()->SetVisibility ( cfg->pane_show_hidden, cfg->pane_show_system, cfg->pane_show_rom );
+						FMGetPanel2 ()->SetVisibility ( cfg->pane_show_hidden, cfg->pane_show_system, cfg->pane_show_rom );
 						g_bSheduleRefresh = true;
 					}
 
-					g_tConfig.filter_include_folders = IsDlgButtonChecked ( hDlg, IDC_FILTERDIRS ) == BST_CHECKED;
+					cfg->filter_include_dirs = IsDlgButtonChecked ( hDlg, IDC_FILTERDIRS ) == BST_CHECKED;
 				}
 				break;
 			}
@@ -658,27 +663,27 @@ static BOOL CALLBACK DlgProcDisplay ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM
 			DlgTxt ( hDlg, IDC_2ND_TOOLBAR, T_DLG_OPTIONS_2NDBAR );
 			DlgTxt ( hDlg, IDC_DOUBLE, T_DLG_OPTIONS_DOUBLE );
 
-			CheckDlgButton ( hDlg, IDC_FULLSCREEN_CHECK, g_tConfig.fullscreen ? BST_CHECKED : BST_UNCHECKED );
-			CheckDlgButton ( hDlg, IDC_SLIDER_LEFT_CHECK, g_tConfig.pane_slider_left ? BST_CHECKED : BST_UNCHECKED );
+			CheckDlgButton ( hDlg, IDC_FULLSCREEN_CHECK, cfg->fullscreen ? BST_CHECKED : BST_UNCHECKED );
+			CheckDlgButton ( hDlg, IDC_SLIDER_LEFT_CHECK, cfg->pane_slider_left ? BST_CHECKED : BST_UNCHECKED );
 
 			EnableWindow ( GetDlgItem ( hDlg, IDC_WM5_TOOLBAR ), GetOSVersion () == WINCE_50 );
-			CheckDlgButton ( hDlg, IDC_WM5_TOOLBAR, g_tConfig.wm5_toolbar ? BST_CHECKED : BST_UNCHECKED );
-			CheckDlgButton ( hDlg, IDC_WM5_HIDE_TOOLBAR, g_tConfig.wm5_hide_toolbar ? BST_CHECKED : BST_UNCHECKED );
+			CheckDlgButton ( hDlg, IDC_WM5_TOOLBAR, cfg->wm5_toolbar ? BST_CHECKED : BST_UNCHECKED );
+			CheckDlgButton ( hDlg, IDC_WM5_HIDE_TOOLBAR, cfg->wm5_hide_toolbar ? BST_CHECKED : BST_UNCHECKED );
 
 			UpdateWM5Buttons ( hDlg );
 
-			CheckDlgButton ( hDlg, IDC_2ND_TOOLBAR, g_tConfig.secondbar ? BST_CHECKED : BST_UNCHECKED );
-			CheckDlgButton ( hDlg, IDC_DOUBLE, g_tConfig.double_buffer ? BST_CHECKED : BST_UNCHECKED );
+			CheckDlgButton ( hDlg, IDC_2ND_TOOLBAR, cfg->secondbar ? BST_CHECKED : BST_UNCHECKED );
+			CheckDlgButton ( hDlg, IDC_DOUBLE, cfg->double_buffer ? BST_CHECKED : BST_UNCHECKED );
 
 			InitDisplayOrientation ( hDlg, IDC_ORIENT_COMBO );
 
 			HWND hOrientCombo = GetDlgItem ( hDlg, IDC_ORIENT_COMBO );
 			if ( CanChangeOrientation () )
 			{
-				if ( g_tConfig.orientation != -1 )
-					g_tConfig.orientation = GetDisplayOrientation ();
+				if ( cfg->orientation != -1 )
+					cfg->orientation = GetDisplayOrientation ();
 
-				SendMessage ( hOrientCombo, CB_SETCURSEL, g_tConfig.orientation + 1, 0 );
+				SendMessage ( hOrientCombo, CB_SETCURSEL, cfg->orientation + 1, 0 );
 			}
 			else
 			{
@@ -687,11 +692,11 @@ static BOOL CALLBACK DlgProcDisplay ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM
 			}
 
 			// splitter
-			SetDlgItemInt ( hDlg, IDC_SPLITTER_HEIGHT, g_tConfig.splitter_thickness, FALSE );
+			SetDlgItemInt ( hDlg, IDC_SPLITTER_HEIGHT, cfg->splitter_thickness, FALSE );
 			HWND hSplitSpin = GetDlgItem ( hDlg, IDC_SPLITTER_HEIGHT_SPIN );
 			SendMessage ( hSplitSpin, UDM_SETRANGE, 0, (LPARAM)MAKELONG ( 20, 3 ) );
 			// slider
-			SetDlgItemInt ( hDlg, IDC_SLIDER_WIDTH, g_tConfig.pane_slider_size_x, FALSE );
+			SetDlgItemInt ( hDlg, IDC_SLIDER_WIDTH, cfg->pane_slider_size_x, FALSE );
 			HWND hSliderSpin = GetDlgItem ( hDlg, IDC_SLIDER_WIDTH_SPIN );
 			SendMessage ( hSliderSpin, UDM_SETRANGE, 0, (LPARAM)MAKELONG ( 50, 5 ) );
 		}
@@ -710,9 +715,9 @@ static BOOL CALLBACK DlgProcDisplay ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM
 				if ( iId == IDC_DOUBLE )
 				{
 					bool bChecked = IsDlgButtonChecked ( hDlg, IDC_DOUBLE ) == BST_CHECKED;
-					if ( bChecked && ! g_tConfig.double_buffer && !g_bDoubleWarn )
+					if ( bChecked && ! cfg->double_buffer && !g_bDoubleWarn )
 					{
-						ShowErrorDialog ( g_hMainWindow, Txt ( T_MSG_WARNING ), Txt ( T_DLG_OPTIONS_DOUBLE_WARN ), IDD_ERROR_OK );
+						ShowErrorDialog ( g_hMainWindow, true, Txt ( T_DLG_OPTIONS_DOUBLE_WARN ), IDD_ERROR_OK );
 						g_bDoubleWarn = true;
 					}
 				}
@@ -735,11 +740,11 @@ static BOOL CALLBACK DlgProcDisplay ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM
 					bool bNewWM5Toolbar = IsDlgButtonChecked ( hDlg, IDC_WM5_TOOLBAR ) == BST_CHECKED;
 					bool bNewWM5HideToolbar = IsDlgButtonChecked ( hDlg, IDC_WM5_HIDE_TOOLBAR ) == BST_CHECKED;
 
-					bool bHideDiffers = bNewWM5HideToolbar != g_tConfig.wm5_hide_toolbar;
-					if ( bNewWM5Toolbar != g_tConfig.wm5_toolbar || bHideDiffers )
+					bool bHideDiffers = bNewWM5HideToolbar != cfg->wm5_hide_toolbar;
+					if ( bNewWM5Toolbar != cfg->wm5_toolbar || bHideDiffers )
 					{
-						g_tConfig.wm5_toolbar = bNewWM5Toolbar;
-						g_tConfig.wm5_hide_toolbar = bNewWM5HideToolbar;
+						cfg->wm5_toolbar = bNewWM5Toolbar;
+						cfg->wm5_hide_toolbar = bNewWM5HideToolbar;
 						menu::RecreateMenuBar ();
 						menu::HideWM5Toolbar ();
 
@@ -748,26 +753,26 @@ static BOOL CALLBACK DlgProcDisplay ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM
 					}
 
 					bool bFullscreen = IsDlgButtonChecked ( hDlg, IDC_FULLSCREEN_CHECK ) == BST_CHECKED;
-					if ( g_tConfig.fullscreen != bFullscreen )
+					if ( cfg->fullscreen != bFullscreen )
 						FMSetFullscreen ( bFullscreen );
 
-					g_tConfig.pane_slider_left = IsDlgButtonChecked ( hDlg, IDC_SLIDER_LEFT_CHECK ) == BST_CHECKED;
+					cfg->pane_slider_left = IsDlgButtonChecked ( hDlg, IDC_SLIDER_LEFT_CHECK ) == BST_CHECKED;
 			
-					g_tConfig.orientation = SendMessage ( GetDlgItem ( hDlg, IDC_ORIENT_COMBO ), CB_GETCURSEL, 0, 0 ) - 1;
-					g_tConfig.orientation = Clamp ( g_tConfig.orientation, -1, 3 );
-					if ( g_tConfig.orientation != -1 )
-						ChangeDisplayOrientation ( g_tConfig.orientation );
+					cfg->orientation = SendMessage ( GetDlgItem ( hDlg, IDC_ORIENT_COMBO ), CB_GETCURSEL, 0, 0 ) - 1;
+					cfg->orientation = Clamp ( cfg->orientation, -1, 3 );
+					if ( cfg->orientation != -1 )
+						ChangeDisplayOrientation ( cfg->orientation );
 					
-					g_tConfig.splitter_thickness = 	GetDlgItemInt ( hDlg, IDC_SPLITTER_HEIGHT, NULL, FALSE );
-					g_tConfig.pane_slider_size_x = GetDlgItemInt ( hDlg, IDC_SLIDER_WIDTH, NULL, FALSE );
+					cfg->splitter_thickness = 	GetDlgItemInt ( hDlg, IDC_SPLITTER_HEIGHT, NULL, FALSE );
+					cfg->pane_slider_size_x = GetDlgItemInt ( hDlg, IDC_SLIDER_WIDTH, NULL, FALSE );
 
 					FMUpdateSplitterThickness ();
 
 					bool b2ndBar = IsDlgButtonChecked ( hDlg, IDC_2ND_TOOLBAR ) == BST_CHECKED;
-					if ( b2ndBar != g_tConfig.secondbar )
+					if ( b2ndBar != cfg->secondbar )
 						menu::ShowSecondToolbar ( b2ndBar );
 
-					g_tConfig.double_buffer = IsDlgButtonChecked ( hDlg, IDC_DOUBLE ) == BST_CHECKED;
+					cfg->double_buffer = IsDlgButtonChecked ( hDlg, IDC_DOUBLE ) == BST_CHECKED;
 				}
 				break;
 			}
@@ -913,7 +918,7 @@ public:
 		Bold ( IDC_ACTION );
 
 		Loc ( IDC_TITLE, T_DLG_BTN_ASSIGNMENT );
-		ItemTxt ( IDC_ACTION, Str_c ( Txt ( T_DLG_BTN_ACTION ) ) + L"\"" + g_tButtons.GetLitName ( m_eAction ) + L"\"" );
+		ItemTxt ( IDC_ACTION, Str_c ( Txt ( T_DLG_BTN_ACTION ) ) + L"\"" + buttons->GetLitName ( m_eAction ) + L"\"" );
 		
 		for ( int i = 0; i < 3; ++i )
 		{
@@ -954,7 +959,7 @@ public:
 		{
 		case IDOK:
 			for ( int i = 0; i < 3; ++i )
-				g_tButtons.SetLong ( m_eAction, i, IsChecked ( m_dItems [i].m_iLong ) );
+				buttons->SetLong ( m_eAction, i, IsChecked ( m_dItems [i].m_iLong ) );
 			
 			Close ( iItem );
 			break;
@@ -985,34 +990,34 @@ private:
 		// check if it was already assigned
 		for ( int i = 0; bCanAssign && i < BA_TOTAL; ++i )
 			for ( int j = 0; bCanAssign && j < 3; ++j )
-				if ( ( i != m_eAction || j != iBtn ) && g_tButtons.GetKey ( BtnAction_e ( i ), j ) == iAssignedBtn && g_tButtons.GetLong ( BtnAction_e ( i ), j ) == g_bLongPress )
+				if ( ( i != m_eAction || j != iBtn ) && buttons->GetKey ( BtnAction_e ( i ), j ) == iAssignedBtn && buttons->GetLong ( BtnAction_e ( i ), j ) == g_bLongPress )
 				{
 					wchar_t szStr [128];
-					wsprintf ( szStr, Txt ( T_DLG_ALREADY_ASSIGNED ), g_tButtons.GetLitName ( BtnAction_e ( i ) ) );
-					int iRes = ShowErrorDialog ( m_hWnd, Txt ( T_MSG_WARNING ), szStr, IDD_ERROR_YES_NO );
+					wsprintf ( szStr, Txt ( T_DLG_ALREADY_ASSIGNED ), buttons->GetLitName ( BtnAction_e ( i ) ) );
+					int iRes = ShowErrorDialog ( m_hWnd, true, szStr, IDD_ERROR_YES_NO );
 					if ( iRes == IDOK )
-						g_tButtons.SetButton ( BtnAction_e (i), j, -1, false );
+						buttons->SetButton ( BtnAction_e (i), j, -1, false );
 					else
 						bCanAssign = false;
 				}
 
 		if ( bCanAssign )
-			g_tButtons.SetButton ( m_eAction, iBtn, iAssignedBtn, g_bLongPress );
+			buttons->SetButton ( m_eAction, iBtn, iAssignedBtn, g_bLongPress );
 			
 		return bCanAssign;
 	}
 
 	void Clear ( int iBtn )
 	{
-		g_tButtons.SetButton ( m_eAction, iBtn, -1, false );
+		buttons->SetButton ( m_eAction, iBtn, -1, false );
 		Update ( iBtn );
 	}
 
 	void Update ( int iBtn )
 	{
-		int iKey = g_tButtons.GetKey ( m_eAction, iBtn );
-		ItemTxt ( m_dItems [iBtn].m_iName, g_tButtons.GetKeyLitName ( iKey ) );
-		CheckBtn ( m_dItems [iBtn].m_iLong, g_tButtons.GetLong ( m_eAction, iBtn ) );
+		int iKey = buttons->GetKey ( m_eAction, iBtn );
+		ItemTxt ( m_dItems [iBtn].m_iName, buttons->GetKeyLitName ( iKey ) );
+		CheckBtn ( m_dItems [iBtn].m_iLong, buttons->GetLong ( m_eAction, iBtn ) );
 
 		EnableWindow ( Item ( m_dItems [iBtn].m_iClear ), iKey != -1 );
 		EnableWindow ( Item ( m_dItems [iBtn].m_iLong ), iKey != -1 );
@@ -1020,7 +1025,7 @@ private:
 };
 
 ///////////////////////////
-class ButtonAssignDlg_c : public WindowResizer_c
+class ButtonAssignDlg_c
 {
 public:
 	ButtonAssignDlg_c ()
@@ -1036,6 +1041,10 @@ public:
 		DlgTxt ( hDlg, IDC_BLOCK, T_DLG_OPTIONS_BLOCK );
 
 		SendMessage ( GetDlgItem ( hDlg, IDC_TITLE ), WM_SETFONT, (WPARAM)g_tResources.m_hBoldSystemFont, TRUE );
+
+		m_dStayers.Add ( GetDlgItem ( hDlg, IDC_BTN_ASSIGN ) );
+		m_dStayers.Add ( GetDlgItem ( hDlg, IDC_BTN_CLEAR ) );
+		m_dStayers.Add ( GetDlgItem ( hDlg, IDC_BLOCK ) );
 
 		m_hList = GetDlgItem ( hDlg, IDC_COMMAND_LIST );
 
@@ -1060,7 +1069,7 @@ public:
 		for ( int i = 0; i < BA_TOTAL; ++i )
 		{
 			BtnAction_e eAction = BtnAction_e ( i );
-			tItem.pszText = (wchar_t*)g_tButtons.GetLitName ( eAction );
+			tItem.pszText = (wchar_t*)buttons->GetLitName ( eAction );
 			tItem.iItem = nItems;
 			int iItem = ListView_InsertItem ( m_hList, &tItem );
 			RefreshListItem ( eAction );
@@ -1069,19 +1078,13 @@ public:
 
 		ListView_SetItemState ( m_hList, 0, LVIS_SELECTED, 0 );
 
-		CheckDlgButton ( hDlg, IDC_BLOCK, g_tConfig.all_keys ? BST_CHECKED : BST_UNCHECKED );
-
-		SetDlg ( hDlg );
-		SetResizer ( m_hList );
-		AddStayer ( GetDlgItem ( hDlg, IDC_BTN_ASSIGN ) );
-		AddStayer ( GetDlgItem ( hDlg, IDC_BTN_CLEAR ) );
-		AddStayer ( GetDlgItem ( hDlg, IDC_BLOCK ) );
+		CheckDlgButton ( hDlg, IDC_BLOCK, cfg->all_keys ? BST_CHECKED : BST_UNCHECKED );
 
 		RECT tWndRect;
 		Verify ( FMCalcWindowRect ( tWndRect, true, true ) );
 		MoveWindow ( hDlg, tWndRect.left, tWndRect.top, tWndRect.right - tWndRect.left, tWndRect.bottom - tWndRect.top, TRUE );
 		if ( HandleTabbedSizeChange ( 0, 0, 0, 0, true ) )
-			Resize ();
+			Resize ( hDlg );
 	}
 
 	void AssignBtn ( HWND hDlg )
@@ -1103,7 +1106,7 @@ public:
 		if ( iSelected >= 0 )
 		{
 			for ( int i = 0; i < 3; ++i )
-				g_tButtons.SetButton ( BtnAction_e ( iSelected ), i, -1, false );
+				buttons->SetButton ( BtnAction_e ( iSelected ), i, -1, false );
 
 			RefreshListItem ( BtnAction_e ( iSelected ) );
 		}
@@ -1133,9 +1136,9 @@ public:
 		}
 	}
 
-	void Resize ()
+	void Resize ( HWND hDlg )
 	{
-		WindowResizer_c::Resize ();
+		DoResize ( hDlg, m_hList, m_dStayers.Length () ? &(m_dStayers [0]) : NULL, m_dStayers.Length () );
 
 		ListView_SetColumnWidth ( m_hList, 0, GetColumnWidthRelative ( 0.8f ) );
 		ListView_SetColumnWidth ( m_hList, 1, GetColumnWidthRelative ( 0.2f ) );
@@ -1143,12 +1146,13 @@ public:
 
 private:
 	HWND 	m_hList;
+	Array_T <HWND> m_dStayers;
 
 	void RefreshListItem ( BtnAction_e eAction )
 	{
 		int nValid = 0;
 		for ( int j = 0; j < 3; ++j )
-			if ( g_tButtons.GetKey ( eAction, j ) != -1 )
+			if ( buttons->GetKey ( eAction, j ) != -1 )
 				++nValid;
 
 		switch ( nValid )
@@ -1213,8 +1217,8 @@ static BOOL CALLBACK DlgProcButtons ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM
 			case BN_CLICKED:
 				if ( iId == IDC_BLOCK )
 				{
-					g_tConfig.all_keys = IsDlgButtonChecked ( hDlg, IDC_BLOCK ) == BST_CHECKED;
-					AllKeys ( g_tConfig.all_keys ? TRUE : FALSE );
+					cfg->all_keys = IsDlgButtonChecked ( hDlg, IDC_BLOCK ) == BST_CHECKED;
+					AllKeys ( cfg->all_keys ? TRUE : FALSE );
 				}
 				break;
 			}
@@ -1231,8 +1235,8 @@ static BOOL CALLBACK DlgProcButtons ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM
 				break;
 
 			case PSN_APPLY:
-				g_tConfig.all_keys = IsDlgButtonChecked ( hDlg, IDC_BLOCK ) == BST_CHECKED;
-				g_tButtons.RegisterHotKeys ( g_hMainWindow );
+				cfg->all_keys = IsDlgButtonChecked ( hDlg, IDC_BLOCK ) == BST_CHECKED;
+				buttons->RegisterHotKeys ( g_hMainWindow );
 				break;
 			}
 		}
@@ -1241,7 +1245,7 @@ static BOOL CALLBACK DlgProcButtons ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM
 
 	if ( HandleTabbedSizeChange ( hDlg, Msg, wParam, lParam ) )
 		if ( g_pButtonAssignDlg )
-			g_pButtonAssignDlg->Resize ();
+			g_pButtonAssignDlg->Resize ( hDlg );
 
 	return FALSE;
 }
@@ -1256,8 +1260,8 @@ static BOOL CALLBACK DlgProcBookmarks ( HWND hDlg, UINT Msg, WPARAM wParam, LPAR
 		DlgTxt ( hDlg, IDC_BM_ICONS, T_DLG_OPTIONS_BM_ICONS );
 		DlgTxt ( hDlg, IDC_EDIT, T_DLG_OPTIONS_BM_EDIT );
 
-		CheckDlgButton ( hDlg, IDC_BM_DRIVES, g_tConfig.bookmarks_drives ? BST_CHECKED : BST_UNCHECKED );
-		CheckDlgButton ( hDlg, IDC_BM_ICONS,  g_tConfig.bookmarks_icons ? BST_CHECKED : BST_UNCHECKED );
+		CheckDlgButton ( hDlg, IDC_BM_DRIVES, cfg->bookmarks_drives ? BST_CHECKED : BST_UNCHECKED );
+		CheckDlgButton ( hDlg, IDC_BM_ICONS,  cfg->bookmarks_icons ? BST_CHECKED : BST_UNCHECKED );
 		break;
 
 	case WM_COMMAND:
@@ -1279,8 +1283,8 @@ static BOOL CALLBACK DlgProcBookmarks ( HWND hDlg, UINT Msg, WPARAM wParam, LPAR
 				break;
 
 			case PSN_APPLY:
-				g_tConfig.bookmarks_drives = IsDlgButtonChecked ( hDlg, IDC_BM_DRIVES ) == BST_CHECKED;
-				g_tConfig.bookmarks_icons =  IsDlgButtonChecked ( hDlg, IDC_BM_ICONS ) == BST_CHECKED;
+				cfg->bookmarks_drives = IsDlgButtonChecked ( hDlg, IDC_BM_DRIVES ) == BST_CHECKED;
+				cfg->bookmarks_icons =  IsDlgButtonChecked ( hDlg, IDC_BM_ICONS ) == BST_CHECKED;
 				break;
 			}
 		}
@@ -1293,9 +1297,9 @@ static BOOL CALLBACK DlgProcBookmarks ( HWND hDlg, UINT Msg, WPARAM wParam, LPAR
 
 static void UpdateRefresh ( HWND hDlg )
 {
-	CheckDlgButton ( hDlg, IDC_AUTOREFRESH, g_tConfig.refresh ? BST_CHECKED : BST_UNCHECKED );
-	EnableWindow ( GetDlgItem ( hDlg, IDC_PERIOD ), g_tConfig.refresh ? TRUE : FALSE );
-	EnableWindow ( GetDlgItem ( hDlg, IDC_MAXFILES ), g_tConfig.refresh ? TRUE : FALSE );
+	CheckDlgButton ( hDlg, IDC_AUTOREFRESH, cfg->refresh ? BST_CHECKED : BST_UNCHECKED );
+	EnableWindow ( GetDlgItem ( hDlg, IDC_PERIOD ), cfg->refresh ? TRUE : FALSE );
+	EnableWindow ( GetDlgItem ( hDlg, IDC_MAXFILES ), cfg->refresh ? TRUE : FALSE );
 }
 
 static BOOL CALLBACK DlgProcRefresh ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM lParam )
@@ -1309,8 +1313,8 @@ static BOOL CALLBACK DlgProcRefresh ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM
 
 		UpdateRefresh ( hDlg );
 
-		SetDlgItemText ( hDlg, IDC_PERIOD, Str_c ( g_tConfig.refresh_period, L"%.1f" ).c_str () );
-		SetDlgItemInt ( hDlg, IDC_MAXFILES, g_tConfig.refresh_max_files, FALSE );
+		SetDlgItemText ( hDlg, IDC_PERIOD, Str_c ( cfg->refresh_period, L"%.1f" ).c_str () );
+		SetDlgItemInt ( hDlg, IDC_MAXFILES, cfg->refresh_max_files, FALSE );
 		break;
 
 	case WM_COMMAND:
@@ -1322,7 +1326,7 @@ static BOOL CALLBACK DlgProcRefresh ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM
 			case BN_CLICKED:
 				if ( iId == IDC_AUTOREFRESH )
 				{
-					g_tConfig.refresh = IsDlgButtonChecked ( hDlg, IDC_AUTOREFRESH ) == BST_CHECKED;
+					cfg->refresh = IsDlgButtonChecked ( hDlg, IDC_AUTOREFRESH ) == BST_CHECKED;
 					UpdateRefresh ( hDlg );
 				}
 				break;
@@ -1340,21 +1344,21 @@ static BOOL CALLBACK DlgProcRefresh ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM
 				break;
 
 			case PSN_APPLY:
-				g_tConfig.refresh = IsDlgButtonChecked ( hDlg, IDC_AUTOREFRESH ) == BST_CHECKED;
+				cfg->refresh = IsDlgButtonChecked ( hDlg, IDC_AUTOREFRESH ) == BST_CHECKED;
 				{
 					const int BUF_SIZE = 128;
 					wchar_t szBuf [BUF_SIZE];
 					GetDlgItemText ( hDlg, IDC_PERIOD, szBuf, BUF_SIZE );
-					g_tConfig.refresh_period = (float) wcstod ( szBuf, L'\0' );
+					cfg->refresh_period = (float) wcstod ( szBuf, L'\0' );
 
 					GetDlgItemText ( hDlg, IDC_MAXFILES, szBuf, BUF_SIZE );
-					g_tConfig.refresh_max_files = _wtoi ( szBuf );
+					cfg->refresh_max_files = _wtoi ( szBuf );
 
-					if ( g_tConfig.refresh_period <= 0.0f )
-						g_tConfig.refresh_period = 0.1f;
+					if ( cfg->refresh_period <= 0.0f )
+						cfg->refresh_period = 0.1f;
 
-					if ( g_tConfig.refresh_max_files < 0 )
-						g_tConfig.refresh_max_files = 0;
+					if ( cfg->refresh_max_files < 0 )
+						cfg->refresh_max_files = 0;
 				}
 				break;
 			}
@@ -1374,8 +1378,8 @@ static BOOL CALLBACK DlgProcExternal ( HWND hDlg, UINT Msg, WPARAM wParam, LPARA
 		DlgTxt ( hDlg, IDC_VIEWER_STATIC,	T_DLG_OPTIONS_EXT_VIEWER );
 		DlgTxt ( hDlg, IDC_BROWSE,			T_DLG_OPTIONS_SELECT_APP );
 		DlgTxt ( hDlg, IDC_PARAMS_STATIC,	T_DLG_RUN_PARAMS );
-		SetDlgItemText ( hDlg, IDC_VIEWER,	g_tConfig.ext_viewer );
-		SetDlgItemText ( hDlg, IDC_PARAMS,	g_tConfig.ext_viewer_params );
+		SetDlgItemText ( hDlg, IDC_VIEWER,	cfg->ext_viewer );
+		SetDlgItemText ( hDlg, IDC_PARAMS,	cfg->ext_viewer_params );
 		break;
 
 	case WM_COMMAND:
@@ -1383,7 +1387,7 @@ static BOOL CALLBACK DlgProcExternal ( HWND hDlg, UINT Msg, WPARAM wParam, LPARA
 		{
 		case IDC_BROWSE:
 			{
-				int iApp = ShowSelectAppDialog ( hDlg );
+				int iApp = SelectAppDlg ( hDlg );
 				if ( iApp != -1 )
 				{
 					const apps::AppInfo_t & tApp = apps::GetApp ( iApp );
@@ -1407,10 +1411,10 @@ static BOOL CALLBACK DlgProcExternal ( HWND hDlg, UINT Msg, WPARAM wParam, LPARA
 				{
 					wchar_t szTmp [MAX_PATH];
 					GetDlgItemText ( hDlg, IDC_VIEWER, szTmp, MAX_PATH );
-					g_tConfig.ext_viewer = szTmp;
+					cfg->ext_viewer = szTmp;
 
 					GetDlgItemText ( hDlg, IDC_PARAMS, szTmp, MAX_PATH );
-					g_tConfig.ext_viewer_params = szTmp;
+					cfg->ext_viewer_params = szTmp;
 				}
 				break;
 			}
@@ -1430,14 +1434,12 @@ static BOOL CALLBACK DlgProcConfirm ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM
 		DlgTxt ( hDlg, IDC_CONF_STATIC, T_DLG_OPTIONS_CONF_HEAD );
 		DlgTxt ( hDlg, IDC_CONF_COPY_OVER, T_DLG_OPTIONS_CONF_COPY );
 		DlgTxt ( hDlg, IDC_CONF_MOVE_OVER, T_DLG_OPTIONS_CONF_MOVE );
-		DlgTxt ( hDlg, IDC_CONF_CRYPT_OVER, T_DLG_OPTIONS_CONF_CRYPT );
 		DlgTxt ( hDlg, IDC_CONF_EXIT, T_DLG_OPTIONS_CONF_EXIT );
 
-		CheckDlgButton ( hDlg, IDC_CONF_HISTORY,    ( ! g_tConfig.save_dlg_history ) ? BST_CHECKED : BST_UNCHECKED );
-		CheckDlgButton ( hDlg, IDC_CONF_COPY_OVER, 	g_tConfig.conf_copy_over ? BST_CHECKED : BST_UNCHECKED );
-		CheckDlgButton ( hDlg, IDC_CONF_MOVE_OVER, 	g_tConfig.conf_move_over ? BST_CHECKED : BST_UNCHECKED );
-		CheckDlgButton ( hDlg, IDC_CONF_CRYPT_OVER, g_tConfig.conf_crypt_over ? BST_CHECKED : BST_UNCHECKED );
-		CheckDlgButton ( hDlg, IDC_CONF_EXIT, 		g_tConfig.conf_exit ? BST_CHECKED : BST_UNCHECKED );
+		CheckDlgButton ( hDlg, IDC_CONF_HISTORY,    ( ! cfg->save_dlg_history ) ? BST_CHECKED : BST_UNCHECKED );
+		CheckDlgButton ( hDlg, IDC_CONF_COPY_OVER, 	cfg->conf_copy_over ? BST_CHECKED : BST_UNCHECKED );
+		CheckDlgButton ( hDlg, IDC_CONF_MOVE_OVER, 	cfg->conf_move_over ? BST_CHECKED : BST_UNCHECKED );
+		CheckDlgButton ( hDlg, IDC_CONF_EXIT, 		cfg->conf_exit ? BST_CHECKED : BST_UNCHECKED );
 		break;
 
 	case WM_NOTIFY:
@@ -1450,11 +1452,10 @@ static BOOL CALLBACK DlgProcConfirm ( HWND hDlg, UINT Msg, WPARAM wParam, LPARAM
 				break;
 
 			case PSN_APPLY:
-				g_tConfig.save_dlg_history =IsDlgButtonChecked ( hDlg, IDC_CONF_HISTORY ) != BST_CHECKED;
-				g_tConfig.conf_copy_over = 	IsDlgButtonChecked ( hDlg, IDC_CONF_COPY_OVER ) == BST_CHECKED;
-				g_tConfig.conf_move_over = 	IsDlgButtonChecked ( hDlg, IDC_CONF_MOVE_OVER ) == BST_CHECKED;
-				g_tConfig.conf_crypt_over =	IsDlgButtonChecked ( hDlg, IDC_CONF_CRYPT_OVER ) == BST_CHECKED;
-				g_tConfig.conf_exit = 		IsDlgButtonChecked ( hDlg, IDC_CONF_EXIT ) == BST_CHECKED;
+				cfg->save_dlg_history= IsDlgButtonChecked ( hDlg, IDC_CONF_HISTORY ) != BST_CHECKED;
+				cfg->conf_copy_over	= IsDlgButtonChecked ( hDlg, IDC_CONF_COPY_OVER ) == BST_CHECKED;
+				cfg->conf_move_over	= IsDlgButtonChecked ( hDlg, IDC_CONF_MOVE_OVER ) == BST_CHECKED;
+				cfg->conf_exit		= IsDlgButtonChecked ( hDlg, IDC_CONF_EXIT ) == BST_CHECKED;
 				break;
 			}
 		}
@@ -1475,7 +1476,7 @@ static void EnumLangs ( Array_T <Str_c> & dLangs )
 	tIterator.IterateStart ( GetExecutablePath (), false );
 	while ( tIterator.IterateNext () )
 	{
-		SplitPath ( tIterator.GetFileName (), sDir, sName, sExt );
+		SplitPath ( tIterator.GetData ()->cFileName, sDir, sName, sExt );
 		if ( sExt == L".lang" )
 			dLangs.Add ( sName );
 	}
@@ -1499,7 +1500,7 @@ static BOOL CALLBACK DlgProcLanguage ( HWND hDlg, UINT Msg, WPARAM wParam, LPARA
 			for ( int i = 0; i < dLangs.Length (); ++i )
 				SendMessage ( hLangCombo, CB_ADDSTRING, 0, (LPARAM)( dLangs [i].c_str () ) );
 
-			SendMessage ( hLangCombo, CB_SELECTSTRING, -1, (LPARAM)( g_tConfig.language.c_str () ) );
+			SendMessage ( hLangCombo, CB_SELECTSTRING, -1, (LPARAM)( cfg->language.c_str () ) );
 		}
 		break;
 
@@ -1516,9 +1517,9 @@ static BOOL CALLBACK DlgProcLanguage ( HWND hDlg, UINT Msg, WPARAM wParam, LPARA
 				{
 					wchar_t szPath [MAX_PATH];
 					GetDlgItemText ( hDlg, IDC_LANGUAGE_COMBO, szPath, MAX_PATH );
-					if ( g_tConfig.language != szPath )
+					if ( cfg->language != szPath )
 					{
-						g_tConfig.language = szPath;
+						cfg->language = szPath;
 						if ( MessageBox ( hDlg, Txt ( T_DLG_REG_RESTART ), Txt ( T_MSG_ATTENTION ), MB_OKCANCEL | MB_ICONINFORMATION ) == IDOK )
 							PostQuitMessage ( 0 );
 					}
@@ -1599,8 +1600,9 @@ void ShowOptionsDialog ()
 
 	if ( g_bUpdateAfterLoad )
 	{
-		FMGetPanel1 ()->UpdateAfterLoad ();
-		FMGetPanel2 ()->UpdateAfterLoad ();
+// FIXME
+//		FMGetPanel1 ()->UpdateAfterLoad ();
+//		FMGetPanel2 ()->UpdateAfterLoad ();
 	}
 	
 	if ( g_bSheduleRefresh )

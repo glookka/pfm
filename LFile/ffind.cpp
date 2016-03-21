@@ -1,15 +1,14 @@
 #include "pch.h"
 
 #include "LFile/ffind.h"
-#include "LCore/clog.h"
-#include "LCore/cfile.h"
 
 
-FileSearch_c::FileSearch_c ( FileList_t & tList, const FileSearchSettings_t & tSettings )
+FileSearch_c::FileSearch_c ( const SelectedFileList_t & tList, const FileSearchSettings_t & tSettings )
 	: m_tSettings		( tSettings )
 	, m_pStringSearch	( NULL )
 	, m_bInStringSearch	( false )
 	, m_pIterator		( NULL )
+	, m_tFilter			( false )
 {
 	DWORD uFlags = m_tSettings.m_uSearchFlags;
 	if ( uFlags & SEARCH_STRING )
@@ -33,7 +32,7 @@ FileSearch_c::FileSearch_c ( FileList_t & tList, const FileSearchSettings_t & tS
 	}
 
 	m_tFilter.Set ( m_tSettings.m_sFilter );
-	m_dFound.Resize ( DEFAULT_FOUND_FILES );
+	m_dFound.Reserve ( DEFAULT_FOUND_FILES );
 }
 
 
@@ -55,7 +54,7 @@ bool FileSearch_c::SearchNext ()
 		{
 			const WIN32_FIND_DATA * pData = m_pIterator->GetData ();
 			Assert ( pData );
-			m_dFound.Add ( FoundFile_t ( *pData, m_pIterator->GetDirectory () ) );
+			m_dFound.Add ( FoundFile_t ( *pData, m_pIterator->GetFullName () ) );
 		}
 		
 		if ( m_pStringSearch->IsFileFinished () )
@@ -83,18 +82,12 @@ bool FileSearch_c::SearchNext ()
 			{
 				if ( ! ( pData->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) )
 				{
-					Str_c sFileName = m_sStartDir;
-					AppendSlash ( sFileName );
-					sFileName += m_pIterator->GetDirectory ();
-					AppendSlash ( sFileName );
-					sFileName += pData->cFileName;
-
-					if ( m_pStringSearch->StartFile ( sFileName ) )
+					if ( m_pStringSearch->StartFile ( m_pIterator->GetFullName () ) )
 						m_bInStringSearch = true;
 				}
 			}
 			else
-				m_dFound.Add ( FoundFile_t ( *pData, m_pIterator->GetDirectory () ) );
+				m_dFound.Add ( FoundFile_t ( *pData, m_pIterator->GetFullPath () ) );
 
 			return true;
 		}
@@ -118,7 +111,7 @@ const WIN32_FIND_DATA & FileSearch_c::GetData ( int nFile ) const
 
 Str_c FileSearch_c::GetDirectory ( int nFile ) const
 {
-	Str_c sDir ( m_sStartDir + m_dFound [nFile].m_sDir );
+	Str_c sDir ( m_dFound [nFile].m_sDir );
 	AppendSlash ( sDir );
 	return sDir;
 }

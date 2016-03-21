@@ -1,8 +1,8 @@
 #include "pch.h"
 
 #include "LFile/fmessages.h"
-#include "LCore/cos.h"
-#include "LSettings/slocal.h"
+#include "pfm/system.h"
+#include "pfm/config.h"
 
 Str_c GetExecuteError ( int iMsg, bool bShowAlways )
 {

@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="windows-1251"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8,00"
+	Version="9,00"
 	Name="LDialogs"
 	ProjectGUID="{C3AA8F76-9BC3-4D73-84DF-E7BDC79DEC10}"
 	RootNamespace="LDialogs"
+	TargetFrameworkVersion="131072"
 	>
 	<Platforms>
 		<Platform
@@ -89,6 +90,9 @@
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
 				OutputFile="$(PlatformName)\$(ConfigurationName)/ldialogs.bsc"
+			/>
+			<Tool
+				Name="VCFxCopTool"
 			/>
 			<Tool
 				Name="VCCodeSignTool"
@@ -186,6 +190,9 @@
 				OutputFile="$(PlatformName)\$(ConfigurationName)/ldialogs.bsc"
 			/>
 			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
 				Name="VCCodeSignTool"
 			/>
 			<Tool
@@ -193,7 +200,7 @@
 			/>
 			<DeploymentTool
 				ForceDirty="-1"
-				RemoteDirectory=""
+				RemoteDirectory="Storage Card\Rinfix Pocket File Manager"
 				RegisterOutput="0"
 				AdditionalFiles=""
 			/>
@@ -346,6 +353,9 @@
 				OutputFile="$(PlatformName)\$(ConfigurationName)/ldialogs.bsc"
 			/>
 			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
 				Name="VCCodeSignTool"
 			/>
 			<Tool
@@ -431,6 +441,9 @@
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
 				OutputFile="$(PlatformName)\$(ConfigurationName)/ldialogs.bsc"
+			/>
+			<Tool
+				Name="VCFxCopTool"
 			/>
 			<Tool
 				Name="VCCodeSignTool"
@@ -531,18 +544,6 @@
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
-				RelativePath=".\dapps.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\dbookmarks.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\dcommon.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\dcopy.cpp"
 				>
 			</File>
@@ -551,47 +552,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\dcrypt.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\ddelete.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\ddelete_progress.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\ddrive.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\derrors.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\dfile_properties.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\dfilter.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\dfind.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\dfind_progress.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\dmkdir.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\dmodule.cpp"
 				>
 			</File>
 			<File
@@ -599,19 +560,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\dregister.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\dsend.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\dshortcut.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\dtree.cpp"
 				>
 			</File>
 		</Filter>
@@ -619,18 +568,6 @@
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl"
 			>
-			<File
-				RelativePath=".\dapps.h"
-				>
-			</File>
-			<File
-				RelativePath=".\dbookmarks.h"
-				>
-			</File>
-			<File
-				RelativePath=".\dcommon.h"
-				>
-			</File>
 			<File
 				RelativePath=".\dcopy.h"
 				>
@@ -640,47 +577,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\dcrypt.h"
-				>
-			</File>
-			<File
-				RelativePath=".\ddelete.h"
-				>
-			</File>
-			<File
-				RelativePath=".\ddelete_progress.h"
-				>
-			</File>
-			<File
-				RelativePath=".\ddrive.h"
-				>
-			</File>
-			<File
-				RelativePath=".\derrors.h"
-				>
-			</File>
-			<File
 				RelativePath=".\dfile_properties.h"
-				>
-			</File>
-			<File
-				RelativePath=".\dfilter.h"
-				>
-			</File>
-			<File
-				RelativePath=".\dfind.h"
-				>
-			</File>
-			<File
-				RelativePath=".\dfind_progress.h"
-				>
-			</File>
-			<File
-				RelativePath=".\dmkdir.h"
-				>
-			</File>
-			<File
-				RelativePath=".\dmodule.h"
 				>
 			</File>
 			<File
@@ -688,19 +585,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\dregister.h"
-				>
-			</File>
-			<File
 				RelativePath=".\dsend.h"
-				>
-			</File>
-			<File
-				RelativePath=".\dshortcut.h"
-				>
-			</File>
-			<File
-				RelativePath=".\dtree.h"
 				>
 			</File>
 		</Filter>

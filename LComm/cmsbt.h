@@ -1,8 +1,8 @@
 #ifndef _cmsbt_
 #define _cmsbt_
 
-#include "LCore/cmain.h"
-#include "LCore/cstr.h"
+#include "pfm/main.h"
+#include "pfm/std.h"
 #include "LComm/ccomm.h"
 #include "LComm/cbtdefs.h"
 
@@ -39,8 +39,8 @@ private:
 class MsBTObexClient_c : public WindowNotifier_c
 {
 public:
-	static const int MAX_PACKET_SIZE = 0x0FD7;
-	static const int MIN_PACKET_SIZE = 256;
+	static const unsigned int MAX_PACKET_SIZE = 0x0FD7;
+	static const unsigned int MIN_PACKET_SIZE = 256;
 
 					MsBTObexClient_c ( const BT_ADDR & tAddress );
 					~MsBTObexClient_c ();

@@ -1,7 +1,7 @@
 #include "pch.h"
-
 #include "LFile/fquicksearch.h"
-#include "LCore/clog.h"
+
+#include "pfm/std.h"
 
 
 StringSearch_c::StringSearch_c ( const wchar_t * szPattern, bool bMatchCase, bool bWholeWord )

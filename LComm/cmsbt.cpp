@@ -1,8 +1,6 @@
 #include "pch.h"
 
 #include "LComm/cmsbt.h"
-#include "LCore/clog.h"
-#include "LCore/ctimer.h"
 #include "LComm/cirda.h"
 #include "LComm/cbluetooth.h"
 

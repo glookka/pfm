@@ -1,26 +1,22 @@
 #include "pch.h"
 
 #include "LFile/fcopy.h"
-#include "LCore/clog.h"
-#include "LCore/ctimer.h"
-#include "LCore/cfile.h"
-#include "LFile/fmkdir.h"
-#include "LSettings/sconfig.h"
-#include "LSettings/slocal.h"
-#include "LPanel/pbase.h"
-#include "LDialogs/derrors.h"
+#include "pfm/config.h"
+#include "pfm/panel.h"
+#include "pfm/filemisc.h"
+#include "pfm/dialogs/errors.h"
 
-#include "Resources/resource.h"
+#include "Dlls/Resource/resource.h"
 
 
 //////////////////////////////////////////////////////////////////////////
 // helper
-static bool SetupOperation ( HWND hWnd, const FileList_t & tList, Str_c & sDestDir, DestType_e & eDestType, bool & bCreateDir )
+static bool SetupOperation ( HWND hWnd, const SelectedFileList_t & tList, Str_c & sDestDir, DestType_e & eDestType, bool & bCreateDir )
 {
 	// check if we have any dirs as source
 	bool bHaveSourceDirs = false;
 	for ( int i = 0; i < tList.m_dFiles.Length () && !bHaveSourceDirs; ++i )
-		if ( tList.m_dFiles [i]->m_tData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY )
+		if ( tList.m_dFiles [i]->m_FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY )
 			bHaveSourceDirs = true;
 
 	bool bEndInSlash = sDestDir.Ends ( L"\\" );
@@ -40,7 +36,7 @@ static bool SetupOperation ( HWND hWnd, const FileList_t & tList, Str_c & sDestD
 			// renaming one directory
 			if ( tList.m_dFiles.Length () == 1 )
 			{
-				Str_c sSourceFile = tList.m_sRootDir + tList.m_dFiles [0]->m_tData.cFileName;
+				Str_c sSourceFile = tList.m_sRootDir + tList.m_dFiles [0]->m_FindData.cFileName;
 				AppendSlash ( sSourceFile );
 
 				Str_c sTestDir = sDestDir;
@@ -54,7 +50,7 @@ static bool SetupOperation ( HWND hWnd, const FileList_t & tList, Str_c & sDestD
 		{
 			if ( bHaveSourceDirs )
 			{
-				ShowErrorDialog ( hWnd, Txt ( T_MSG_ERROR ), Txt ( T_MSG_WRONG_DEST ), IDD_ERROR_OK );
+				ShowErrorDialog ( hWnd, false, Txt ( T_MSG_WRONG_DEST ), IDD_ERROR_OK );
 				return false;
 			}
 			else
@@ -90,7 +86,7 @@ static bool SetupOperation ( HWND hWnd, const FileList_t & tList, Str_c & sDestD
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // move files within one volume
-FileMover_c::FileMover_c ( const Str_c & sDest, FileList_t & tList, MarkCallback_t fnMarkCallback )
+FileMover_c::FileMover_c ( const Str_c & sDest, SelectedFileList_t & tList, MarkCallback_t fnMarkCallback )
 	: m_pList 			( &tList )
 	, m_sDestDir		( sDest )
 	, m_hWnd 			( NULL )
@@ -109,10 +105,7 @@ bool FileMover_c::Setup ()
 	if ( ! SetupOperation ( m_hWnd, *m_pList, m_sDestDir, m_eDestType, bCreateDir ) )
 		return false;
 
-	if ( m_eDestType == DEST_OVER )
-		g_tErrorList.Reset ( OM_RENAME );
-	else
-		g_tErrorList.Reset ( OM_MOVE );
+	ErrSetOperation ( m_eDestType == DEST_OVER ? g_ErrorHandlers.m_hRename : g_ErrorHandlers.m_hMove );
 
 	m_tFileIterator.IterateStart ( *m_pList, false );
 
@@ -120,7 +113,7 @@ bool FileMover_c::Setup ()
 
 	if ( bCreateDir )
 	{
-		if ( m_pList->m_dFiles.Length () == 1 && ( m_pList->m_dFiles [0]->m_tData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) )
+		if ( m_pList->m_dFiles.Length () == 1 && ( m_pList->m_dFiles [0]->m_FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) )
 		{
 			RemoveSlash ( m_sDestDir );
 			m_eDestType = DEST_OVER;
@@ -129,10 +122,7 @@ bool FileMover_c::Setup ()
 			bRes = MakeDirectory ( m_sDestDir );
 	}
 
-	if ( m_eDestType == DEST_OVER )
-		g_tErrorList.Reset ( OM_RENAME );
-	else
-		g_tErrorList.Reset ( OM_MOVE );
+	ErrSetOperation ( m_eDestType == DEST_OVER ? g_ErrorHandlers.m_hRename : g_ErrorHandlers.m_hMove );
 
 	return bRes;
 }
@@ -158,7 +148,7 @@ bool FileMover_c::MoveNext ()
 		{
 			if ( ! m_tFileIterator.Is2ndPassDir () )
 			{
-				sSource	= m_pList->m_sRootDir + m_tFileIterator.GetFileName ();
+				sSource	= m_tFileIterator.GetFullName ();
 
 				Str_c sDest = GenerateDestName ( m_tFileIterator.GetFileNameSkipped () );
 
@@ -167,7 +157,7 @@ bool FileMover_c::MoveNext ()
 
 				if ( sTmp1 == sTmp2 )
 				{
-					g_tErrorList.ShowErrorDialog ( m_hWnd, EC_MOVE_ONTO_ITSELF, false, sSource, sDest );
+					ErrShowErrorDlg ( m_hWnd, EC_MOVE_ONTO_ITSELF, false, sSource, sDest );
 					return false;
 				}
 
@@ -191,7 +181,7 @@ void FileMover_c::SetWindow ( HWND hWnd )
 
 bool FileMover_c::IsInDialog () const
 {
-	return g_tErrorList.IsInDialog ();
+	return ErrIsInDialog ();
 }
 
 Str_c FileMover_c::GenerateDestName ( const Str_c & sSourceName ) const
@@ -212,7 +202,7 @@ OperationResult_e FileMover_c::TryToMoveFile ( const Str_c & sSource, const Str_
 	
 	if ( sSource == sDest )
 	{
-		g_tErrorList.ShowErrorDialog ( m_hWnd, EC_MOVE_ONTO_ITSELF, false, sSource, sDest );
+		ErrShowErrorDlg ( m_hWnd, EC_MOVE_ONTO_ITSELF, false, sSource, sDest );
 		return RES_ERROR;
 	}
 
@@ -220,13 +210,13 @@ OperationResult_e FileMover_c::TryToMoveFile ( const Str_c & sSource, const Str_
 	bool bDestExists = GetFileAttributes ( sDest ) != 0xFFFFFFFF;
 	if ( bDestExists && ! bCaseRename )
 	{
-		bool bAsk = g_tConfig.conf_move_over;
+		bool bAsk = cfg->conf_move_over;
 		if ( bAsk )
 		{
-			int iErrAction = g_tErrorList.ShowErrorDialog ( m_hWnd, EC_DEST_EXISTS, false, sSource, sDest );
+			ErrResponse_e eErrResponse = ErrShowErrorDlg ( m_hWnd, EC_DEST_EXISTS, false, sSource, sDest );
 
-			if ( iErrAction != IDC_OVER )
-				return iErrAction == IDCANCEL ? RES_CANCEL : RES_ERROR;
+			if ( eErrResponse != ER_OVER )
+				return eErrResponse == ER_CANCEL ? RES_CANCEL : RES_ERROR;
 		}
 
 		DWORD dwDestAttrib;
@@ -251,9 +241,10 @@ OperationResult_e FileMover_c::TryToMoveFile ( const Str_c & sSource, const Str_
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // the file copier class
-FileCopier_c::FileCopier_c ( const Str_c & sDest, FileList_t & tList, bool bMove,
+FileCopier_c::FileCopier_c ( const Str_c & sDest, SelectedFileList_t & tList, bool bMove,
 		SlowOperationCallback_t fnPrepareCallback, MarkCallback_t fnMarkCallback )
-	: m_fnMarkCallback		( fnMarkCallback )
+	: m_bMove				( bMove )
+	, m_fnMarkCallback		( fnMarkCallback )
 	, m_pCopyBuffer			( NULL )
 	, m_eDestType			( DEST_OVER )
 {
@@ -273,7 +264,7 @@ FileCopier_c::FileCopier_c ( const Str_c & sDest, FileList_t & tList, bool bMove
 	m_pList	= &tList;
 	m_sDestDir = sDest;
 
-	g_tErrorList.Reset ( bMove ? OM_MOVE : OM_COPY );
+	ErrSetOperation ( bMove ? g_ErrorHandlers.m_hMove : g_ErrorHandlers.m_hCopy );
 
 	int nFiles, nFolders;
 	DWORD dwA1, dwA2;
@@ -289,7 +280,7 @@ FileCopier_c::~FileCopier_c ()
 
 bool FileCopier_c::IsInDialog () const
 {
-	return g_tErrorList.IsInDialog ();
+	return ErrIsInDialog ();
 }
 
 
@@ -309,9 +300,8 @@ bool FileCopier_c::Setup ()
 
 	if ( bCreateDir )
 	{
-		OperationMode_e eMode = g_tErrorList.GetMode ();
 		bool bMkDirRes = MakeDirectory ( m_sDestDir );
-		g_tErrorList.SetOperationMode ( eMode );
+		ErrSetOperation ( m_bMove ? g_ErrorHandlers.m_hMove : g_ErrorHandlers.m_hCopy );
 
 		if ( ! bMkDirRes )
 			return false;
@@ -320,7 +310,7 @@ bool FileCopier_c::Setup ()
 	m_tFileIterator.IterateStart ( *m_pList );
 
 	// skip source root directory in case we're copying just one dir
-	if ( bCreateDir && m_pList->m_dFiles.Length () == 1 && ( m_pList->m_dFiles [0]->m_tData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) )
+	if ( bCreateDir && m_pList->m_dFiles.Length () == 1 && ( m_pList->m_dFiles [0]->m_FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) )
 		m_tFileIterator.SkipRoot ( true );
 
 	return true;
@@ -445,7 +435,7 @@ void FileCopier_c::Reset ()
 {
 	FileProgress_c::Reset ();
 
-	g_tErrorList.Reset ( OM_COPY );
+	ErrSetOperation ( g_ErrorHandlers.m_hCopy );
 
 	m_pList				= NULL;
 	m_eState			= STATE_INITIAL;
@@ -493,14 +483,14 @@ bool FileCopier_c::GenerateNextFileName ()
 		{
 			if ( m_eMode != MODE_COPY )
 			{
-				Str_c sLastDir = m_pList->m_sRootDir + m_tFileIterator.GetFileName ();
+				Str_c sLastDir = m_tFileIterator.GetFullName ();
 				if ( ! sLastDir.Empty () )
 					RemoveDirectory ( sLastDir );
 			}
 		}
 		else
 		{
-			m_sSourceFileName = m_tFileIterator.GetFileName ();
+			m_sSourceFileName = m_tFileIterator.GetFullName ();
 			m_sSource	= m_pList->m_sRootDir + m_sSourceFileName;
 
 			m_bNameFlag = true;
@@ -516,7 +506,7 @@ bool FileCopier_c::GenerateNextFileName ()
 
 			if ( sTmpS == sTmpD || sTmpS == sTmpDD )
 			{
-				g_tErrorList.ShowErrorDialog ( m_hWnd, EC_COPY_ONTO_ITSELF, false, m_sSource, m_sDest );
+				ErrShowErrorDlg ( m_hWnd, EC_COPY_ONTO_ITSELF, false, m_sSource, m_sDest );
 				return false;
 			}
 
@@ -552,12 +542,12 @@ OperationResult_e FileCopier_c::PrepareSimpleFile ()
 	TRY_FUNC ( bResult, GetFileTime ( m_hSource, NULL, NULL, &m_tModifyTime ), FALSE, m_sSource, m_sDest );
 
 	// check available space
-	int iErrAction = IDC_RETRY;
-	while ( m_uSourceSize.QuadPart > uAvailable.QuadPart && iErrAction == IDC_RETRY  )
-		iErrAction = g_tErrorList.ShowErrorDialog ( m_hWnd, EC_NOT_ENOUGH_SPACE, false, m_sSource, m_sDest );
+	ErrResponse_e eErrResponse = ER_RETRY;
+	while ( m_uSourceSize.QuadPart > uAvailable.QuadPart && eErrResponse == ER_RETRY  )
+		eErrResponse = ErrShowErrorDlg ( m_hWnd, EC_NOT_ENOUGH_SPACE, false, m_sSource, m_sDest );
 
 	if ( m_uSourceSize.QuadPart > uAvailable.QuadPart )
-		return iErrAction == IDCANCEL ? RES_CANCEL : RES_ERROR;
+		return eErrResponse == ER_CANCEL ? RES_CANCEL : RES_ERROR;
 
 	return RES_OK;
 }
@@ -573,8 +563,8 @@ OperationResult_e FileCopier_c::PrepareFile ()
 	// check if source and dest are different
 	if ( m_sSource == m_sDest )
 	{
-		int iErrAction = g_tErrorList.ShowErrorDialog ( m_hWnd, EC_COPY_ONTO_ITSELF, false, m_sSource, m_sDest );
-		return iErrAction == IDCANCEL ? RES_CANCEL : RES_ERROR;
+		ErrResponse_e eErrResponse = ErrShowErrorDlg ( m_hWnd, EC_COPY_ONTO_ITSELF, false, m_sSource, m_sDest );
+		return eErrResponse == ER_CANCEL ? RES_CANCEL : RES_ERROR;
 	}
 
 	// get file attributes
@@ -597,13 +587,13 @@ OperationResult_e FileCopier_c::PrepareFile ()
 
 	if ( bDestExists && ! bDirectory )
 	{
-		bool bAsk = GetCopyMode () == MODE_COPY ? g_tConfig.conf_copy_over : g_tConfig.conf_move_over;
+		bool bAsk = GetCopyMode () == MODE_COPY ? cfg->conf_copy_over : cfg->conf_move_over;
 		if ( bAsk )
 		{
-			int iErrAction = g_tErrorList.ShowErrorDialog ( m_hWnd, EC_DEST_EXISTS, false, m_sSource, m_sDest );
+			ErrResponse_e eErrResponse = ErrShowErrorDlg ( m_hWnd, EC_DEST_EXISTS, false, m_sSource, m_sDest );
 
-            if ( iErrAction != IDC_OVER )
-				return iErrAction == IDCANCEL ? RES_CANCEL : RES_ERROR;
+            if ( eErrResponse != ER_OVER )
+				return eErrResponse == ER_CANCEL ? RES_CANCEL : RES_ERROR;
 		}
 
 		// get dest attributes
